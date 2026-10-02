@@ -154,7 +154,7 @@ figcaption { font-size: 13px; color: var(--muted); }
     <h2>The instrument</h2>
     <div class="instrument">
       <div class="pane">
-        <model-viewer src="model/puma.glb" alt="Rotatable 3D model of the PUMA microscope" camera-controls touch-action="pan-y"
+        <model-viewer loading="eager" reveal="auto" src="model/puma.glb" alt="Rotatable 3D model of the PUMA microscope" camera-controls touch-action="pan-y"
           auto-rotate auto-rotate-delay="2500" rotation-per-second="18deg" shadow-intensity="0.8" exposure="1.05"
           environment-image="neutral" camera-orbit="-35deg 70deg auto" interaction-prompt="none"></model-viewer>
         <p class="caption">Drag to rotate, scroll or pinch to zoom. Built from the original PUMA CAD parts (FreeCAD → Blender → glTF), assembled by hand from the PUMA build guide, so part positions are approximate.</p>
