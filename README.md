@@ -15,6 +15,8 @@ The viewer lets you:
 
 ![Focus stack through the PUMA optics](figures/08_final_focus_stack.png)
 
+![The tardigrade walking, simulated through the PUMA optics](docs/img/anim/walk.gif)
+
 None of the images are painted. White LED light is propagated as a wave through a 3D refractive-index volume of the animal. It is then imaged through lenses whose prescriptions come from open patents. Colour fringes, blur, diffraction and the depth-dependent spherical aberration all come out of that calculation.
 
 This is an independent project built **on top of** PUMA. It is not part of the PUMA project and not endorsed by its author.
