@@ -78,14 +78,15 @@ Result: blue (450 nm) comes to focus **11 µm deeper** than green, which is the 
 
 The viewer has an illumination selector. Each preset needs its own focus stack (ray-traced optics + ideal lens):
 
-| Preset | Condenser NA | Source points | Status | CPU time* |
-|---|---|---|---|---|
-| `mirror`: plane mirror, no condenser (PUMA Foundation scope) | ≈ 0.05 | 7 | **included** | ~10 min |
-| `k015`: Köhler, aperture stop closed | 0.15 | 37 | to compute | ~35 min |
-| `k030`: Köhler, standard | 0.30 | 61 | **included** | ~45 min |
-| `k040`: Köhler, fully open (= objective NA) | 0.40 | 91 | to compute | ~70 min |
+| Preset | Condenser NA | Source points | Status | CPU time* | GPU time** |
+|---|---|---|---|---|---|
+| `mirror`: plane mirror, no condenser (PUMA Foundation scope) | ≈ 0.05 | 7 | **included** | ~10 min | 8 min |
+| `k015`: Köhler, aperture stop closed | 0.15 | 37 | **included** | ~35 min | 8.5 min |
+| `k030`: Köhler, standard | 0.30 | 61 | **included** | ~45 min | |
+| `k040`: Köhler, fully open (= objective NA) | 0.40 | 91 | **included** | ~70 min | 11 min |
 
 \*6-core laptop CPU, 21 focus planes × 9 wavelengths, both optics.
+\*\*GTX 1080 + i7-7820HK. Only 1.5–4 min of this is wave optics; the rest is the CPU ray trace of the 21 traced pupils.
 
 ```bash
 python scripts/fetch_data.py

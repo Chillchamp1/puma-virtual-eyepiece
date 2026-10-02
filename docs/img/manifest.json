@@ -1,13 +1,23 @@
 {
  "presets": {
+  "mirror": {
+   "label": "Plane mirror, no condenser (PUMA Foundation scope)",
+   "na_condenser": 0.05,
+   "planes": 21
+  },
+  "k015": {
+   "label": "Köhler, aperture stop closed",
+   "na_condenser": 0.15,
+   "planes": 21
+  },
   "k030": {
    "label": "Köhler, standard setting",
    "na_condenser": 0.3,
    "planes": 21
   },
-  "mirror": {
-   "label": "Plane mirror, no condenser (PUMA Foundation scope)",
-   "na_condenser": 0.05,
+  "k040": {
+   "label": "Köhler, aperture stop fully open (= objective NA)",
+   "na_condenser": 0.4,
    "planes": 21
   }
  }
