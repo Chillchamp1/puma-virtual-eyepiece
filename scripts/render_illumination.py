@@ -39,7 +39,7 @@ def main():
             print("skip", key, "(already built)")
             continue
         for optics in ("traced", "ideal"):
-            out = os.path.join(ROOT, "renders", "illum", f"{key}_{optics}")
+            out = os.path.join(ROOT, "r", f"{key}{optics[0]}")   # short path: Windows MAX_PATH
             subprocess.run([sys.executable, "render_color.py", "--out", out, f"--focus={focus}", "--rings", str(rings),
                             "--nlam", str(a.nlam), "--nac", str(nac), "--pupil", optics],
                            cwd=os.path.join(ROOT, "sim"), check=True)
