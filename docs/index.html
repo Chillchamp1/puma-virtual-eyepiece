@@ -109,7 +109,7 @@ figcaption { font-size: 13px; color: var(--muted); }
   <div class="stage">
     <div>
       <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Use the mouse wheel or arrow keys to focus.">
-        <img id="view" alt="Simulated view through the eyepiece" src="img/k030/traced/eye_f-30.jpg">
+        <img id="view" alt="Simulated view through the eyepiece" src="img/k030/traced/detail_f-30.jpg">
         <div class="scalebar"><i id="sbline" style="width:110px"></i><span id="sblabel">100 µm</span></div>
       </div>
     </div>
@@ -130,8 +130,8 @@ figcaption { font-size: 13px; color: var(--muted); }
       <div>
         <span class="ctl-label">View</span>
         <div class="seg" role="group" aria-label="Choose view">
-          <button id="b-eye" aria-pressed="true">Eyepiece 1 mm</button>
-          <button id="b-detail" aria-pressed="false">Detail</button>
+          <button id="b-eye" aria-pressed="false">Eyepiece 1 mm</button>
+          <button id="b-detail" aria-pressed="true">Detail</button>
         </div>
       </div>
       <div class="knobwrap">
@@ -225,7 +225,7 @@ figcaption { font-size: 13px; color: var(--muted); }
     { key: "k030", label: "Köhler, standard", na: 0.30 },
     { key: "k040", label: "Köhler, fully open", na: 0.40 },
   ];
-  const state = { illum: "k030", optics: "traced", view: "eye", idx: 9, holding: false };
+  const state = { illum: "k030", optics: "traced", view: "detail", idx: 9, holding: false };
   let built = new Set(["k030"]);
   const img = document.getElementById("view");
   const focus = document.getElementById("focus");
