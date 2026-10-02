@@ -80,7 +80,7 @@ The viewer has an illumination selector. Each preset needs its own focus stack (
 
 | Preset | Condenser NA | Source points | Status | CPU time* |
 |---|---|---|---|---|
-| `mirror`: plane mirror, no condenser (PUMA Foundation scope) | ≈ 0.05 | 7 | to compute | ~10 min |
+| `mirror`: plane mirror, no condenser (PUMA Foundation scope) | ≈ 0.05 | 7 | **included** | ~10 min |
 | `k015`: Köhler, aperture stop closed | 0.15 | 37 | to compute | ~35 min |
 | `k030`: Köhler, standard | 0.30 | 61 | **included** | ~45 min |
 | `k040`: Köhler, fully open (= objective NA) | 0.40 | 91 | to compute | ~70 min |

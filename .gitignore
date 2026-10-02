@@ -6,3 +6,5 @@ __pycache__/
 cad/named/
 cad/stl/
 r/
+r_log.txt
+r_err.txt

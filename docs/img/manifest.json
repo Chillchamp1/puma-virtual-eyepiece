@@ -4,6 +4,11 @@
    "label": "Köhler, standard setting",
    "na_condenser": 0.3,
    "planes": 21
+  },
+  "mirror": {
+   "label": "Plane mirror, no condenser (PUMA Foundation scope)",
+   "na_condenser": 0.05,
+   "planes": 21
   }
  }
 }
