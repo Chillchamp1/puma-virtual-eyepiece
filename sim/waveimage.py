@@ -12,10 +12,24 @@ Abbe source-point integration with Koehler illumination:
     5. |field|^2 added incoherently with weight S(lambda) * (source point weight)
 Colour: spectral image -> CIE 1931 XYZ (Wyman et al. 2013 analytic fit) -> linear sRGB.
 """
+import os
 import numpy as np
 import scipy.fft as sfft
 
-WORKERS = 6
+WORKERS = os.cpu_count() or 6
+
+# Optional GPU backend: set PUMA_BACKEND=gpu|cpu|auto (default auto = GPU if CuPy + CUDA device found).
+_cp = None
+if os.environ.get("PUMA_BACKEND", "auto") != "cpu":
+    try:
+        import cupy as _cupy
+        if _cupy.cuda.runtime.getDeviceCount() > 0:
+            _cp = _cupy
+    except Exception:
+        _cp = None
+    if os.environ.get("PUMA_BACKEND") == "gpu" and _cp is None:
+        raise RuntimeError("PUMA_BACKEND=gpu but CuPy/CUDA is not available")
+BACKEND = "gpu" if _cp is not None else "cpu"
 
 
 # ---------------------------------------------------------------- spectra / colour
@@ -128,6 +142,8 @@ def simulate_wavelength(specimen_slab, dz_um, grid, lam_um, n_med, na_obj, na_c,
             P = (P * np.exp(2j * np.pi * W / lam_um)).astype(np.complex64)
         Ps.append(P)
     backs = [grid.propagator(fz, n_med, lam_um) * P for fz, P in zip(focus_um, Ps)]
+    if _cp is not None:
+        return _run_gpu(trans, H, backs, grid, lam_um, na_c, n_rings, nz, sx, sy, ox, oy, n)
     out = [np.zeros((n, n), np.float32) for _ in focus_um]
     for ix, iy, w in source_points(na_c, lam_um, grid, n_rings):
         fx, fy = ix * grid.df, iy * grid.df
@@ -140,3 +156,28 @@ def simulate_wavelength(specimen_slab, dz_um, grid, lam_um, n_med, na_obj, na_c,
             img = sfft.ifft2(Ehat * B, workers=WORKERS)
             o += w * (np.abs(img) ** 2).astype(np.float32)
     return out
+
+
+def _run_gpu(trans, H, backs, grid, lam_um, na_c, n_rings, nz, sx, sy, ox, oy, n):
+    """Same algorithm as the CPU loop, on a CUDA GPU via CuPy (complex64 cuFFT)."""
+    cp = _cp
+    trans_g = cp.asarray(trans)
+    H_g = cp.asarray(H)
+    backs_g = [cp.asarray(B) for B in backs]
+    x_g = cp.asarray(grid.x, dtype=cp.float32)
+    y_g = cp.asarray(grid.y, dtype=cp.float32)
+    out = [cp.zeros((n, n), cp.float32) for _ in backs]
+    for ix, iy, w in source_points(na_c, lam_um, grid, n_rings):
+        fx, fy = ix * grid.df, iy * grid.df
+        E = cp.exp(2j * np.pi * (fx * x_g + fy * y_g)).astype(cp.complex64)
+        for j in range(nz):
+            E[ox:ox + sx, oy:oy + sy] *= trans_g[j]
+            E = cp.fft.ifft2(cp.fft.fft2(E) * H_g)
+        Ehat = cp.fft.fft2(E)
+        for o, B in zip(out, backs_g):
+            img = cp.fft.ifft2(Ehat * B)
+            o += cp.float32(w) * (cp.abs(img) ** 2).astype(cp.float32)
+    res = [cp.asnumpy(o) for o in out]
+    del trans_g, H_g, backs_g, out
+    cp.get_default_memory_pool().free_all_blocks()
+    return res

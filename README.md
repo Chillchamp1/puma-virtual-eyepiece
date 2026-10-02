@@ -104,6 +104,13 @@ python eyepiece_view.py ../renders/traced ../docs/img/traced
 
 A full 21-plane focus stack takes about 20 min on a 6-core laptop CPU.
 
+**NVIDIA GPU (optional, much faster):** the wave-optics engine switches to CuPy/cuFFT automatically when CuPy and a CUDA device are found (`PUMA_BACKEND=cpu|gpu|auto`).
+
+```bash
+pip install cupy-cuda12x          # or cupy-cuda11x, matching your CUDA driver
+python scripts/check_gpu.py       # renders one test image on CPU and GPU, compares them, prints the speed-up
+```
+
 To rebuild the 3D model you need FreeCAD 0.20.2 (the PUMA files can break when recomputed in FreeCAD 1.x) and Blender 5.x. Run these in order: `cad/fc_toplevel.py` (with FreeCADCmd), `cad/name_parts.py`, `cad/assemble_puma.py` and `cad/export_glb.py` (with Blender).
 
 ## Credits and licences
