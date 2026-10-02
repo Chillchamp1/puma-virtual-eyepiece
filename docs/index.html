@@ -71,7 +71,7 @@ p { margin: 0; }
 /* ---------------- instrument */
 .instrument { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 24px; }
 .pane { display: grid; gap: 8px; min-width: 0; }
-model-viewer { width: 100%; aspect-ratio: 4 / 5; max-width: 100%; background: radial-gradient(ellipse at 50% 35%, #2b3236, #12171a 75%);
+model-viewer { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; max-width: 100%; background: radial-gradient(ellipse at 50% 35%, #2b3236, #12171a 75%);
   border: 1px solid var(--line); border-radius: 12px; --poster-color: transparent; }
 .pane img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; }
 .caption { font-size: 13px; color: var(--muted); }
