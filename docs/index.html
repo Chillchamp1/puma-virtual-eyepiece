@@ -1,0 +1,262 @@
+<title>PUMA Virtual Eyepiece</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js"></script>
+<style>
+/* Layout: an instrument bench. The eyepiece view is the hero; controls sit beside it like the focus
+   knob on the stand; the instrument itself (3D + render) and the lab notes follow below. */
+:root {
+  --bench: #0f1316;        /* page ground: dark lab bench */
+  --panel: #171d21;        /* raised panels */
+  --line: #2a3238;         /* hairlines */
+  --ink: #e6e2d8;          /* primary text, warm paper white */
+  --muted: #9aa3a6;        /* secondary text */
+  --brass: #c8a457;        /* accent: objective thread brass */
+  --code20x: #39a35f;      /* 20x objective colour ring (used once, as a marker) */
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bench); color: var(--ink); }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.55; padding-inline: 20px; padding-block: 28px 64px; }
+.wrap { max-width: 1180px; margin-inline: auto; display: grid; gap: 44px; }
+header { display: grid; gap: 10px; max-width: 72ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 52px); line-height: 1.04; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 24px; margin: 0 0 12px; text-wrap: balance; }
+p { margin: 0; }
+.lede { color: var(--muted); font-size: 16.5px; max-width: 66ch; }
+
+/* ---------------- scope stage */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.ocular { position: relative; aspect-ratio: 1; width: 100%; max-width: 760px; margin-inline: auto;
+  border-radius: 50%; background: #000; overflow: hidden; cursor: ns-resize;
+  box-shadow: 0 0 0 10px #050607, 0 0 0 11px var(--line), 0 30px 80px rgba(0,0,0,.55); }
+.ocular img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+.scalebar { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); display: grid; justify-items: center; gap: 3px; pointer-events: none; }
+.scalebar i { display: block; height: 3px; background: rgba(20,20,20,.7); border-radius: 2px; }
+.scalebar span { font-family: var(--f-mono); font-size: 11px; color: rgba(20,20,20,.7); }
+
+.controls { display: grid; gap: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.ctl-label { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: block; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--bench); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
+.seg button { font: 500 13.5px/1.2 var(--f-body); color: var(--muted); background: transparent; border: 0; border-radius: 7px; padding: 9px 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bench); }
+.seg button:focus-visible, .knobwrap input:focus-visible, .hold:focus-visible, .ocular:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.readout { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; margin: 0; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; text-align: right; }
+.knobwrap { display: grid; gap: 10px; }
+.knobwrap input[type=range] { width: 100%; accent-color: var(--brass); }
+.depthbar { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.hold { font: 600 13.5px var(--f-body); color: var(--bench); background: var(--brass); border: 0; border-radius: 9px; padding: 11px 12px; cursor: pointer; }
+.hold:active { filter: brightness(.9); }
+.note { font-size: 13px; color: var(--muted); }
+.ring20 { display: inline-block; width: 26px; height: 7px; border-radius: 3px; background: var(--code20x); vertical-align: middle; margin-right: 6px; }
+
+/* ---------------- instrument */
+.instrument { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 24px; }
+.pane { display: grid; gap: 8px; min-width: 0; }
+model-viewer { width: 100%; aspect-ratio: 4 / 5; max-width: 100%; background: radial-gradient(ellipse at 50% 35%, #2b3236, #12171a 75%);
+  border: 1px solid var(--line); border-radius: 12px; --poster-color: transparent; }
+.pane img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; }
+.caption { font-size: 13px; color: var(--muted); }
+
+/* ---------------- notes */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 28px 36px; }
+.notes section { min-width: 0; }
+.path { list-style: none; margin: 0; padding: 0; display: grid; border-left: 1px solid var(--line); }
+.path li { position: relative; padding: 4px 0 14px 18px; }
+.path li::before { content: ""; position: absolute; left: -4px; top: 11px; width: 7px; height: 7px; border-radius: 50%; background: var(--brass); }
+.path b { font-weight: 600; }
+.path small { display: block; color: var(--muted); font-size: 13px; }
+.tag { display: inline-block; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.tag.open { color: #9fd5ad; border: 1px solid #335c40; }
+.tag.sub { color: #e8c58a; border: 1px solid #6a5530; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+ul.plain li::marker { color: var(--brass); }
+figure { margin: 0; display: grid; gap: 8px; }
+figure img { border-radius: 10px; border: 1px solid var(--line); background: #fff; width: 100%; height: auto; }
+figcaption { font-size: 13px; color: var(--muted); }
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 26px; }
+.wide { grid-column: 1 / -1; }
+.credits { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 6px; max-width: 90ch; }
+.credits a { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">PUMA · brightfield · 20x/0.40 · eyepiece 10x/20</div>
+    <h1>Looking through the PUMA at a tardigrade</h1>
+    <p class="lede">Every image on this page is computed, none is painted. Light from a white LED travels as a wave through a real, nanoCT-scanned tardigrade. It then passes lenses whose data come from open patents: the objective, the eyepiece and a model eye. The colour fringes, blur and diffraction you see all come out of that calculation.</p>
+  </header>
+
+  <div class="stage">
+    <div>
+      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Use the mouse wheel or arrow keys to focus.">
+        <img id="view" alt="Simulated view through the eyepiece" src="img/traced/eye_f-30.jpg">
+        <div class="scalebar"><i id="sbline" style="width:110px"></i><span id="sblabel">100 µm</span></div>
+      </div>
+    </div>
+
+    <aside class="controls" aria-label="Controls">
+      <div>
+        <span class="ctl-label">Optics</span>
+        <div class="seg" role="group" aria-label="Choose optics">
+          <button id="b-traced" aria-pressed="true">PUMA optics</button>
+          <button id="b-ideal" aria-pressed="false">Ideal lens</button>
+        </div>
+      </div>
+      <div>
+        <span class="ctl-label">View</span>
+        <div class="seg" role="group" aria-label="Choose view">
+          <button id="b-eye" aria-pressed="true">Eyepiece 1 mm</button>
+          <button id="b-detail" aria-pressed="false">Detail</button>
+        </div>
+      </div>
+      <div class="knobwrap">
+        <label class="ctl-label" for="focus">Fine focus</label>
+        <input type="range" id="focus" min="0" max="20" step="1" value="9">
+        <div class="depthbar"><span>dorsal</span><span>ventral</span></div>
+        <dl class="readout">
+          <dt>Focal plane</dt><dd id="r-depth">−30 µm</dd>
+          <dt>Optics</dt><dd id="r-optics">ray-traced</dd>
+          <dt>Total magn.</dt><dd>200×</dd>
+        </dl>
+      </div>
+      <button class="hold" id="hold">Hold to compare: ideal lens</button>
+      <p class="note"><span class="ring20"></span>Scroll, swipe or press ↑ ↓ on the image to focus through the animal in 3 µm steps.</p>
+    </aside>
+  </div>
+
+  <section>
+    <h2>The instrument</h2>
+    <div class="instrument">
+      <div class="pane">
+        <model-viewer src="model/puma.glb" alt="Rotatable 3D model of the PUMA microscope" camera-controls touch-action="pan-y"
+          auto-rotate auto-rotate-delay="2500" rotation-per-second="18deg" shadow-intensity="0.8" exposure="1.05"
+          environment-image="neutral" camera-orbit="-35deg 70deg auto" interaction-prompt="none"></model-viewer>
+        <p class="caption">Drag to rotate, scroll or pinch to zoom. Built from the original PUMA CAD parts (FreeCAD → Blender → glTF), assembled by hand from the PUMA build guide, so part positions are approximate.</p>
+      </div>
+      <div class="pane">
+        <img src="img/fig_puma3d.png" alt="Rendered image of the PUMA microscope" loading="lazy">
+        <p class="caption">Cycles render of the same assembly: black PLA with 0.2 mm print layers, generic 20x plan achromat (green colour ring), slide on the stage, Abbe condenser below.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="notes">
+    <section>
+      <h2>The optical path</h2>
+      <ol class="path">
+        <li><b>White LED, 6500 K</b><span class="tag open">PUMA docs</span><small>Blue InGaN peak at 452 nm plus phosphor. 9 wavelengths from 420 to 680 nm.</small></li>
+        <li><b>Köhler condenser, NA 0.30</b><span class="tag sub">assumed</span><small>The PUMA docs require a condenser from 20x up (measured up to NA 0.70). Aperture stop set to 0.30, 61 source points.</small></li>
+        <li><b>Tardigrade <i>Hypsibius exemplaris</i></b><span class="tag open">nanoCT, CC BY</span><small>152 µm long, 270 nm voxels, 11 segmented organs. Refractive index per tissue is a literature-based assumption.</small></li>
+        <li><b>Cover glass 0.17 mm, water</b><span class="tag open">Schott D 263</span><small>Focusing deeper into the water adds spherical aberration. The calculation includes it.</small></li>
+        <li><b>Plan achromat 20x/0.40</b><span class="tag sub">Olympus patent</span><small>US 4,212,515, 7 elements, glasses S-LAH66, S-FPL51, S-LAL12 and others. A generic objective rather than a specific retail part, as the PUMA intends.</small></li>
+        <li><b>Tube 160 mm, field stop 20 mm</b><span class="tag open">PUMA docs</span><small>Finite DIN system without a tube lens.</small></li>
+        <li><b>Eyepiece 10x</b><span class="tag sub">AO patent</span><small>US 3,888,567, f = 24.9 mm. The PUMA only specifies "WF 10x/20".</small></li>
+        <li><b>Eye</b><span class="tag sub">Navarro 1985</span><small>Aspheric model eye with dispersion of the ocular media. The exit pupil is 1.05 mm.</small></li>
+      </ol>
+    </section>
+    <section>
+      <h2>What is computed</h2>
+      <ul class="plain">
+        <li>Wave propagation through the 3D animal in 134 slices (multi-slice), with diffraction, refraction and multiple scattering.</li>
+        <li>Partially coherent Köhler illumination as an incoherent sum over 61 source points × 9 wavelengths.</li>
+        <li>Longitudinal colour as a wavelength-dependent sharp plane, found by ray tracing from the specimen to the retina. At 450 nm it lies 11 µm deeper than for green.</li>
+        <li>Residual aberrations (spherical aberration, spherochromatism) as a pupil phase from the traced wavefront.</li>
+        <li>Colour through the CIE 1931 colour-matching functions, white-balanced like an eye adapted to the lamp.</li>
+      </ul>
+      <h2 style="margin-top:22px">What is assumed or simplified</h2>
+      <ul class="plain">
+        <li>Tissue refractive indices: cytoplasm ≈ 1.355, storage cells ≈ 1.39, cuticle ≈ 1.46. Algae in the gut absorb with a chlorophyll-like spectrum.</li>
+        <li>Only the central 207 µm are simulated. The rest of the 1 mm field of view is empty slide in the simulated background colour.</li>
+        <li>Aberrations are those on axis. Field curvature towards the edge of the field is not included.</li>
+        <li>Scalar wave optics, no polarisation. The detail view is a digital zoom on the same data.</li>
+        <li>The scanned animal was critical-point dried and is therefore smaller than a living one (living adults are 250–500 µm).</li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="figs">
+    <figure class="wide">
+      <img src="img/fig_optics.png" alt="Optical layout, longitudinal colour and point spread functions" loading="lazy">
+      <figcaption>The ray-traced optical path. Left: the secondary spectrum, i.e. the sharp plane in the specimen per wavelength. Right: point spread functions at green focus.</figcaption>
+    </figure>
+    <figure class="wide">
+      <img src="img/fig_specimen.png" alt="Refractive-index volume of the tardigrade" loading="lazy">
+      <figcaption>The tardigrade as a 3D refractive-index volume, sections at 589 nm.</figcaption>
+    </figure>
+  </div>
+
+  <div class="credits">
+    <p><b>Sources and licences.</b> Tardigrade scan: Gross, V. et al. (2019) "X-ray imaging of a water bear offers a new look at tardigrade internal anatomy", Zoological Letters 5:14, CC BY 4.0. PUMA: Dr Paul J. Tadrous, <a href="https://github.com/TadPath/PUMA">github.com/TadPath/PUMA</a> (CAD GPL-3.0, docs GFDL). Objective: US 4,212,515 (Itaya, Olympus 1980). Eyepiece: US 3,888,567 (Shoemaker, American Optical 1975). Eye: Navarro, Santamaría &amp; Bescós, JOSA A 2 (1985). Ray tracing: Optiland (MIT). Glass data: Ohara and Schott catalogues. 3D viewer: model-viewer (Apache-2.0).</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEPTHS = Array.from({length: 21}, (_, i) => -3 * (i + 1));   // um below the dorsal surface
+  const state = { optics: "traced", view: "eye", idx: 9, holding: false };
+  const img = document.getElementById("view");
+  const focus = document.getElementById("focus");
+  const rDepth = document.getElementById("r-depth");
+  const rOpt = document.getElementById("r-optics");
+  const sbLine = document.getElementById("sbline"), sbLabel = document.getElementById("sblabel");
+  const ocular = document.getElementById("ocular");
+  const src = (optics, view, d) => `img/${optics}/${view}_f${d}.jpg`;
+  const cache = [];
+  for (const o of ["traced", "ideal"]) for (const v of ["eye", "detail"]) for (const d of DEPTHS) {
+    const im = new Image(); im.src = src(o, v, d); cache.push(im);
+  }
+  function scalebar() {
+    const w = ocular.clientWidth;
+    if (state.view === "eye") { sbLine.style.width = (w * 100 / 1000) + "px"; sbLabel.textContent = "100 µm"; }
+    else { sbLine.style.width = (w * 20 / (0.84 * 207.36)) + "px"; sbLabel.textContent = "20 µm"; }
+  }
+  function render() {
+    const optics = state.holding ? "ideal" : state.optics;
+    const d = DEPTHS[state.idx];
+    img.src = src(optics, state.view, d);
+    rDepth.textContent = "−" + Math.abs(d) + " µm";
+    rOpt.textContent = optics === "traced" ? "ray-traced" : "ideal lens";
+    focus.value = state.idx;
+    scalebar();
+  }
+  function setPressed(a, b, on) { a.setAttribute("aria-pressed", on); b.setAttribute("aria-pressed", !on); }
+  const bT = document.getElementById("b-traced"), bI = document.getElementById("b-ideal");
+  const bE = document.getElementById("b-eye"), bD = document.getElementById("b-detail");
+  bT.onclick = () => { state.optics = "traced"; setPressed(bT, bI, true); render(); };
+  bI.onclick = () => { state.optics = "ideal"; setPressed(bT, bI, false); render(); };
+  bE.onclick = () => { state.view = "eye"; setPressed(bE, bD, true); render(); };
+  bD.onclick = () => { state.view = "detail"; setPressed(bE, bD, false); render(); };
+  focus.oninput = () => { state.idx = +focus.value; render(); };
+  const step = (k) => { state.idx = Math.max(0, Math.min(20, state.idx + k)); render(); };
+  ocular.addEventListener("wheel", (e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+  ocular.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); step(1); }
+    if (e.key === "ArrowUp") { e.preventDefault(); step(-1); }
+  });
+  let ty = null;
+  ocular.addEventListener("touchstart", (e) => { ty = e.touches[0].clientY; }, { passive: true });
+  ocular.addEventListener("touchmove", (e) => {
+    if (ty === null) return;
+    const dy = e.touches[0].clientY - ty;
+    if (Math.abs(dy) > 24) { step(dy > 0 ? 1 : -1); ty = e.touches[0].clientY; }
+    e.preventDefault();
+  }, { passive: false });
+  const hold = document.getElementById("hold");
+  const on = () => { state.holding = true; render(); }, off = () => { state.holding = false; render(); };
+  hold.addEventListener("pointerdown", on); hold.addEventListener("pointerup", off); hold.addEventListener("pointerleave", off);
+  hold.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") on(); });
+  hold.addEventListener("keyup", off);
+  window.addEventListener("resize", scalebar);
+  render();
+})();
+</script>

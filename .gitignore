@@ -1,0 +1,7 @@
+data/
+renders/
+__pycache__/
+*.pyc
+*.blend1
+cad/named/
+cad/stl/
