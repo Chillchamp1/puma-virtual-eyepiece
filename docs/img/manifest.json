@@ -1,0 +1,9 @@
+{
+ "presets": {
+  "k030": {
+   "label": "Köhler, standard setting",
+   "na_condenser": 0.3,
+   "planes": 21
+  }
+ }
+}

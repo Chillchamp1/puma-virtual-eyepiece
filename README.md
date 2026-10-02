@@ -68,6 +68,25 @@ Result: blue (450 nm) comes to focus **11 µm deeper** than green, which is the 
 - The 3D assembly is approximate. The parts are original, their positions are placed by hand.
 - The walking animation uses a plausible gait model, not motion-capture data.
 
+## Illumination presets
+
+The viewer has an illumination selector. Each preset needs its own focus stack (ray-traced optics + ideal lens):
+
+| Preset | Condenser NA | Source points | Status | CPU time* |
+|---|---|---|---|---|
+| `mirror`: plane mirror, no condenser (PUMA Foundation scope) | ≈ 0.05 | 7 | to compute | ~10 min |
+| `k015`: Köhler, aperture stop closed | 0.15 | 37 | to compute | ~35 min |
+| `k030`: Köhler, standard | 0.30 | 61 | **included** | ~45 min |
+| `k040`: Köhler, fully open (= objective NA) | 0.40 | 91 | to compute | ~70 min |
+
+\*6-core laptop CPU, 21 focus planes × 9 wavelengths, both optics.
+
+```bash
+python scripts/fetch_data.py
+python scripts/render_illumination.py                 # renders every preset not yet in docs/img/manifest.json
+git add docs/img && git commit -m "Add illumination presets" && git push   # GitHub Pages updates itself
+```
+
 ## Reproduce
 
 ```bash

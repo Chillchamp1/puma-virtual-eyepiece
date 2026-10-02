@@ -53,6 +53,16 @@ p { margin: 0; }
 .knobwrap { display: grid; gap: 10px; }
 .knobwrap input[type=range] { width: 100%; accent-color: var(--brass); }
 .depthbar { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.illum { display: grid; gap: 4px; }
+.illum button { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 8px; text-align: left;
+  font: 500 13.5px/1.25 var(--f-body); color: var(--ink); background: var(--bench); border: 1px solid var(--line);
+  border-radius: 9px; padding: 8px 10px; cursor: pointer; }
+.illum button small { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.illum button[aria-pressed="true"] { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+.illum button:disabled { cursor: not-allowed; color: var(--muted); opacity: .55; }
+.illum button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.illum-note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.illum-note code { font-family: var(--f-mono); font-size: 11.5px; }
 .hold { font: 600 13.5px var(--f-body); color: var(--bench); background: var(--brass); border: 0; border-radius: 9px; padding: 11px 12px; cursor: pointer; }
 .hold:active { filter: brightness(.9); }
 .note { font-size: 13px; color: var(--muted); }
@@ -99,7 +109,7 @@ figcaption { font-size: 13px; color: var(--muted); }
   <div class="stage">
     <div>
       <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Use the mouse wheel or arrow keys to focus.">
-        <img id="view" alt="Simulated view through the eyepiece" src="img/traced/eye_f-30.jpg">
+        <img id="view" alt="Simulated view through the eyepiece" src="img/k030/traced/eye_f-30.jpg">
         <div class="scalebar"><i id="sbline" style="width:110px"></i><span id="sblabel">100 µm</span></div>
       </div>
     </div>
@@ -111,6 +121,11 @@ figcaption { font-size: 13px; color: var(--muted); }
           <button id="b-traced" aria-pressed="true">PUMA optics</button>
           <button id="b-ideal" aria-pressed="false">Ideal lens</button>
         </div>
+      </div>
+      <div>
+        <span class="ctl-label">Illumination</span>
+        <div class="illum" id="illum" role="group" aria-label="Choose illumination"></div>
+        <p class="illum-note" id="illum-note" hidden>Greyed-out settings are not computed yet. Run <code>python scripts/render_illumination.py</code> to add them.</p>
       </div>
       <div>
         <span class="ctl-label">View</span>
@@ -126,6 +141,7 @@ figcaption { font-size: 13px; color: var(--muted); }
         <dl class="readout">
           <dt>Focal plane</dt><dd id="r-depth">−30 µm</dd>
           <dt>Optics</dt><dd id="r-optics">ray-traced</dd>
+          <dt>Condenser NA</dt><dd id="r-na">0.30</dd>
           <dt>Total magn.</dt><dd>200×</dd>
         </dl>
       </div>
@@ -155,7 +171,7 @@ figcaption { font-size: 13px; color: var(--muted); }
       <h2>The optical path</h2>
       <ol class="path">
         <li><b>White LED, 6500 K</b><span class="tag open">PUMA docs</span><small>Blue InGaN peak at 452 nm plus phosphor. 9 wavelengths from 420 to 680 nm.</small></li>
-        <li><b>Köhler condenser, NA 0.30</b><span class="tag sub">assumed</span><small>The PUMA docs require a condenser from 20x up (measured up to NA 0.70). Aperture stop set to 0.30, 61 source points.</small></li>
+        <li><b>Illumination: mirror or Köhler condenser</b><span class="tag sub">selectable</span><small>The PUMA Foundation scope lights the slide with a plane mirror (modelled as NA ≈ 0.05). From 20x up the PUMA docs call for a condenser (measured up to NA 0.70). The Köhler aperture stop can be set to NA 0.15, 0.30 or 0.40.</small></li>
         <li><b>Tardigrade <i>Hypsibius exemplaris</i></b><span class="tag open">nanoCT, CC BY</span><small>152 µm long, 270 nm voxels, 11 segmented organs. Refractive index per tissue is a literature-based assumption.</small></li>
         <li><b>Cover glass 0.17 mm, water</b><span class="tag open">Schott D 263</span><small>Focusing deeper into the water adds spherical aberration. The calculation includes it.</small></li>
         <li><b>Plan achromat 20x/0.40</b><span class="tag sub">Olympus patent</span><small>US 4,212,515, 7 elements, glasses S-LAH66, S-FPL51, S-LAL12 and others. A generic objective rather than a specific retail part, as the PUMA intends.</small></li>
@@ -168,7 +184,7 @@ figcaption { font-size: 13px; color: var(--muted); }
       <h2>What is computed</h2>
       <ul class="plain">
         <li>Wave propagation through the 3D animal in 134 slices (multi-slice), with diffraction, refraction and multiple scattering.</li>
-        <li>Partially coherent Köhler illumination as an incoherent sum over 61 source points × 9 wavelengths.</li>
+        <li>Partially coherent illumination as an incoherent sum over condenser source points (7 to 91, depending on the aperture) × 9 wavelengths.</li>
         <li>Longitudinal colour as a wavelength-dependent sharp plane, found by ray tracing from the specimen to the retina. At 450 nm it lies 11 µm deeper than for green.</li>
         <li>Residual aberrations (spherical aberration, spherochromatism) as a pupil phase from the traced wavefront.</li>
         <li>Colour through the CIE 1931 colour-matching functions, white-balanced like an eye adapted to the lamp.</li>
@@ -203,18 +219,47 @@ figcaption { font-size: 13px; color: var(--muted); }
 <script>
 (() => {
   const DEPTHS = Array.from({length: 21}, (_, i) => -3 * (i + 1));   // um below the dorsal surface
-  const state = { optics: "traced", view: "eye", idx: 9, holding: false };
+  const PRESETS = [
+    { key: "mirror", label: "Plane mirror, no condenser", na: 0.05 },
+    { key: "k015", label: "Köhler, aperture closed", na: 0.15 },
+    { key: "k030", label: "Köhler, standard", na: 0.30 },
+    { key: "k040", label: "Köhler, fully open", na: 0.40 },
+  ];
+  const state = { illum: "k030", optics: "traced", view: "eye", idx: 9, holding: false };
+  let built = new Set(["k030"]);
   const img = document.getElementById("view");
   const focus = document.getElementById("focus");
   const rDepth = document.getElementById("r-depth");
   const rOpt = document.getElementById("r-optics");
   const sbLine = document.getElementById("sbline"), sbLabel = document.getElementById("sblabel");
   const ocular = document.getElementById("ocular");
-  const src = (optics, view, d) => `img/${optics}/${view}_f${d}.jpg`;
+  const src = (illum, optics, view, d) => `img/${illum}/${optics}/${view}_f${d}.jpg`;
   const cache = [];
-  for (const o of ["traced", "ideal"]) for (const v of ["eye", "detail"]) for (const d of DEPTHS) {
-    const im = new Image(); im.src = src(o, v, d); cache.push(im);
+  const preload = (illum) => {
+    for (const o of ["traced", "ideal"]) for (const v of ["eye", "detail"]) for (const d of DEPTHS) {
+      const im = new Image(); im.src = src(illum, o, v, d); cache.push(im);
+    }
+  };
+  const illumBox = document.getElementById("illum");
+  const illumNote = document.getElementById("illum-note");
+  function drawIllum() {
+    illumBox.replaceChildren(...PRESETS.map((p) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.disabled = !built.has(p.key);
+      b.setAttribute("aria-pressed", p.key === state.illum);
+      b.innerHTML = `<span>${p.label}</span><small>NA ${p.na.toFixed(2)}</small>`;
+      if (b.disabled) b.title = "Not computed yet";
+      b.onclick = () => { state.illum = p.key; preload(p.key); drawIllum(); render(); };
+      return b;
+    }));
+    illumNote.hidden = PRESETS.every((p) => built.has(p.key));
   }
+  fetch("img/manifest.json").then((r) => r.ok ? r.json() : null).then((m) => {
+    if (m && m.presets) { built = new Set(Object.keys(m.presets)); drawIllum(); }
+  }).catch(() => {});
+  drawIllum();
+  preload(state.illum);
   function scalebar() {
     const w = ocular.clientWidth;
     if (state.view === "eye") { sbLine.style.width = (w * 100 / 1000) + "px"; sbLabel.textContent = "100 µm"; }
@@ -223,7 +268,8 @@ figcaption { font-size: 13px; color: var(--muted); }
   function render() {
     const optics = state.holding ? "ideal" : state.optics;
     const d = DEPTHS[state.idx];
-    img.src = src(optics, state.view, d);
+    img.src = src(state.illum, optics, state.view, d);
+    document.getElementById("r-na").textContent = PRESETS.find((p) => p.key === state.illum).na.toFixed(2);
     rDepth.textContent = "−" + Math.abs(d) + " µm";
     rOpt.textContent = optics === "traced" ? "ray-traced" : "ideal lens";
     focus.value = state.idx;
