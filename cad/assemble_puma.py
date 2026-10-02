@@ -173,9 +173,9 @@ Z_BASE_BOTTOM = LEG                     # base plate STL spans z 2..16 -> shift 
 Z_STAGE_TOP = Z_BASE_BOTTOM + 14.0      # 40
 Z_SPECIMEN = Z_STAGE_TOP + 1.0 + 0.05   # slide 1.0 mm, tardigrade just under the cover glass
 Z_SHOULDER = Z_SPECIMEN + 45.0          # RMS parfocal 45 mm (incl. 0.17 cover glass)
-Z_PLATE = Z_SHOULDER + 35.0             # quick-release holder between objective and focus platform
+Z_PLATE = Z_SHOULDER + 18.0             # C-RMS ring (5) inside QR adapter (14) + base thread (8, 3 mm engaged)
 Z_PLATE_TOP = Z_PLATE + 11.0
-Z_FB_TOP = Z_PLATE_TOP + 41.1
+Z_FB_TOP = Z_PLATE_TOP + 40.0              # filter block STL z 16..56
 
 # ---------------------------------------------------------------- stage, legs
 part("ST_Base_plate", (0, 0, Z_BASE_BOTTOM - 2.0))
@@ -214,9 +214,9 @@ part("FG_Fine_gear", (40.0, 15.0, Z_STAGE_TOP + 4.0))
 part("FG_Eccentric_Tensio", (-40.13, -32.14, Z_STAGE_TOP + 1.0))
 
 # ---------------------------------------------------------------- objective holder + objective
-part("QR_C_RMS_Thread", (AX.x, AX.y, Z_SHOULDER - 2.1))
-part("QR_QR_Male_C_extn_1", (AX.x, AX.y, Z_SHOULDER + 17.5 + 0.5))
-part("QR_Base_thread", (AX.x, AX.y, Z_PLATE + 15.2 - 10.0))
+part("QR_C_RMS_Thread", (AX.x, AX.y, Z_SHOULDER - 3.0))          # STL z 3..8: sits on the shoulder
+part("QR_QR_Male_C_extn_1", (AX.x, AX.y, Z_SHOULDER + 1.0))     # STL z -2..12 -> shoulder-1 .. shoulder+13
+part("QR_Base_thread", (AX.x, AX.y, Z_PLATE + 7.0))             # STL z -15..-7 -> plate-8 .. plate
 
 # generic 20x plan achromat: reuse the procedural RMS objective, 20x colour code = green
 spec = importlib.util.spec_from_file_location("objb", os.path.join(HERE, "objective.py"))
@@ -241,10 +241,10 @@ rig.location = Vector((AX.x, AX.y, Z_SHOULDER - 44.3)) * MM      # model: z=0 fr
 
 # ---------------------------------------------------------------- filter block, monocular, eyepiece
 part("FB_Filter_block_sim", (AX.x, AX.y, Z_PLATE_TOP), pivot=(0, 0, 16.0))
-part("MN_Monocular_tube_c", (AX.x, AX.y, Z_FB_TOP - 12.0), pivot=(0, 0, -30.9), brim_z=-30.9 + 0.45, r_max=17.5)
-Z_TUBE_TOP = Z_FB_TOP - 12.0 + 86.7
+part("MN_Monocular_tube_c", (AX.x, AX.y, Z_FB_TOP + 0.0), pivot=(0, 0, -29.0), r_max=17.5)   # STL z -29..54
+Z_TUBE_TOP = Z_FB_TOP + 0.0 + 83.0
 part("MN_Ocular_cap", (AX.x, AX.y, Z_TUBE_TOP - 6.0))
-Z_SEAT = Z_TUBE_TOP - 6.0 + 15.0
+Z_SEAT = Z_TUBE_TOP - 6.0 + 13.0                   # ocular cap STL z 0..13
 # WF 10x/20 eyepiece (generic, 23.2 mm barrel)
 cyl("Eyepiece_barrel", 11.6, 20.0, (AX.x, AX.y, Z_SEAT - 10.0), EYE_BODY)
 cyl("Eyepiece_body", 16.5, 34.0, (AX.x, AX.y, Z_SEAT + 17.0), EYE_BODY)

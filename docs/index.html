@@ -33,6 +33,7 @@ p { margin: 0; }
 /* ---------------- scope stage */
 .stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
 @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { model-viewer { aspect-ratio: 4 / 5; } }
 .ocular { position: relative; aspect-ratio: 1; width: 100%; max-width: 760px; margin-inline: auto;
   border-radius: 50%; background: #000; overflow: hidden; cursor: ns-resize;
   box-shadow: 0 0 0 10px #050607, 0 0 0 11px var(--line), 0 30px 80px rgba(0,0,0,.55); }
@@ -69,11 +70,10 @@ p { margin: 0; }
 .ring20 { display: inline-block; width: 26px; height: 7px; border-radius: 3px; background: var(--code20x); vertical-align: middle; margin-right: 6px; }
 
 /* ---------------- instrument */
-.instrument { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 24px; }
+.instrument { display: grid; gap: 24px; }
 .pane { display: grid; gap: 8px; min-width: 0; }
-model-viewer { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; max-width: 100%; background: radial-gradient(ellipse at 50% 35%, #2b3236, #12171a 75%);
+model-viewer { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; max-height: 82vh; max-width: 100%; background: radial-gradient(ellipse at 50% 35%, #2b3236, #12171a 75%);
   border: 1px solid var(--line); border-radius: 12px; --poster-color: transparent; }
-.pane img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; }
 .caption { font-size: 13px; color: var(--muted); }
 
 /* ---------------- notes */
@@ -158,10 +158,6 @@ figcaption { font-size: 13px; color: var(--muted); }
           auto-rotate auto-rotate-delay="2500" rotation-per-second="18deg" shadow-intensity="0.8" exposure="1.05"
           environment-image="neutral" camera-orbit="-35deg 70deg auto" interaction-prompt="none"></model-viewer>
         <p class="caption">Drag to rotate, scroll or pinch to zoom. Built from the original PUMA CAD parts (FreeCAD → Blender → glTF), assembled by hand from the PUMA build guide, so part positions are approximate.</p>
-      </div>
-      <div class="pane">
-        <img src="img/fig_puma3d.png" alt="Rendered image of the PUMA microscope" loading="lazy">
-        <p class="caption">Cycles render of the same assembly: black PLA with 0.2 mm print layers, generic 20x plan achromat (green colour ring), slide on the stage, Abbe condenser below.</p>
       </div>
     </div>
   </section>
