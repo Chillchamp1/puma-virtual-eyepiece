@@ -88,6 +88,25 @@ The viewer has an illumination selector. Each preset needs its own focus stack (
 \*6-core laptop CPU, 21 focus planes × 9 wavelengths, both optics.
 \*\*GTX 1080 + i7-7820HK. Only 1.5–4 min of this is wave optics; the rest is the CPU ray trace of the 21 traced pupils.
 
+## Orientation: turning and rolling the animal
+
+* **Turn in the field** (slider, ← →, or drag the image): the simulated optics are isoplanatic (one pupil
+  for the whole field) and the condenser is rotationally symmetric, so turning the slide on the stage is
+  exactly a rotation of the image. No extra computation.
+* **Roll about the body axis** (30° steps: belly down, on its side, on its back): every roll is a full
+  multi-slice computation of the rotated 3D volume, standard Köhler illumination, both optics.
+  `python scripts/render_views.py` renders the missing rolls into `docs/img/views/` (3 min per roll on a
+  GTX 1080 when traced and ideal optics are propagated separately; the script now lets both optics share
+  one propagation through the animal, which should roughly halve that).
+
+**Why not a faster linear 3D model?** In the weak-object (first Born / Rytov) approximation the focus
+stack is a 3D filter of the refractive-index volume and any orientation would follow from one 3D FFT.
+`sim/firstorder.py` implements it on the same source points and pupils, and `scripts/compare_firstorder.py`
+compares it with multi-slice: Rytov is correct for a weak copy of the animal (Δn × 0.01: 12 % rms error
+relative to the image contrast) but already fails at Δn × 0.05 (59 %). The real animal accumulates
+~10 rad of phase and its cuticle has Δn ≈ 0.13, so multiple scattering matters and every view is
+computed with multi-slice.
+
 ```bash
 python scripts/fetch_data.py
 python scripts/render_illumination.py                 # renders every preset not yet in docs/img/manifest.json

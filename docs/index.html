@@ -36,9 +36,11 @@ p { margin: 0; }
 @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { model-viewer { aspect-ratio: 4 / 5; } }
 .ocular { position: relative; aspect-ratio: 1; width: 100%; max-width: 760px; margin-inline: auto;
-  border-radius: 50%; background: #000; overflow: hidden; cursor: ns-resize;
+  border-radius: 50%; background: #000; overflow: hidden; cursor: grab;
   box-shadow: 0 0 0 10px #050607, 0 0 0 11px var(--line), 0 30px 80px rgba(0,0,0,.55); }
 .ocular img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+.ctl-val { float: right; color: var(--ink); letter-spacing: 0; text-transform: none; }
+.knobwrap input[type=range]:disabled { opacity: .45; }
 .scalebar { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); display: grid; justify-items: center; gap: 3px; pointer-events: none; }
 .scalebar i { display: block; height: 3px; background: rgba(20,20,20,.7); border-radius: 2px; }
 .scalebar span { font-family: var(--f-mono); font-size: 11px; color: rgba(20,20,20,.7); }
@@ -109,7 +111,7 @@ figcaption { font-size: 13px; color: var(--muted); }
 
   <div class="stage">
     <div>
-      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Use the mouse wheel or arrow keys to focus.">
+      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Mouse wheel or up/down arrow keys focus, dragging or left/right arrow keys turn the slide.">
         <img id="view" alt="Simulated view through the eyepiece" src="img/k030/traced/detail_f-30.jpg">
         <div class="scalebar"><i id="sbline" style="width:110px"></i><span id="sblabel">100 µm</span></div>
       </div>
@@ -136,18 +138,26 @@ figcaption { font-size: 13px; color: var(--muted); }
         </div>
       </div>
       <div class="knobwrap">
+        <label class="ctl-label" for="rot">Rotate in field <span id="r-rot" class="ctl-val">0°</span></label>
+        <input type="range" id="rot" min="0" max="359" step="1" value="0" aria-describedby="rot-note">
+        <label class="ctl-label" for="roll">Roll about body axis <span id="r-roll" class="ctl-val">0° · belly down</span></label>
+        <input type="range" id="roll" min="0" max="330" step="30" value="0">
+        <p class="illum-note" id="rot-note">Turning the slide on the stage only turns the image (the optics are the same everywhere in the field), so rotation is exact. Each roll angle is a separate wave-optics computation of the rotated 3D animal (standard Köhler illumination only).</p>
+      </div>
+      <div class="knobwrap">
         <label class="ctl-label" for="focus">Fine focus</label>
         <input type="range" id="focus" min="0" max="20" step="1" value="9">
-        <div class="depthbar"><span>dorsal</span><span>ventral</span></div>
+        <div class="depthbar"><span id="d-top">dorsal</span><span id="d-bot">ventral</span></div>
         <dl class="readout">
           <dt>Focal plane</dt><dd id="r-depth">−30 µm</dd>
           <dt>Optics</dt><dd id="r-optics">ray-traced</dd>
           <dt>Condenser NA</dt><dd id="r-na">0.30</dd>
+          <dt>Orientation</dt><dd id="r-orient">roll 0° · turn 0°</dd>
           <dt>Total magn.</dt><dd>200×</dd>
         </dl>
       </div>
       <button class="hold" id="hold">Hold to compare: ideal lens</button>
-      <p class="note"><span class="ring20"></span>Scroll, swipe or press ↑ ↓ on the image to focus through the animal in 3 µm steps.</p>
+      <p class="note"><span class="ring20"></span>Scroll, swipe or press ↑ ↓ on the image to focus through the animal in 3 µm steps, ← → to turn it.</p>
     </aside>
   </div>
 
@@ -168,6 +178,10 @@ figcaption { font-size: 13px; color: var(--muted); }
     <figure>
       <img src="img/anim/walk.gif" alt="Simulated view of the tardigrade walking, seen through the PUMA optics" style="max-width:720px;background:#000" loading="lazy">
       <figcaption>One stride cycle, 12 frames, focal plane 36 µm below the dorsal surface, through the same ray-traced PUMA optics. The 3D refractive-index volume is deformed per frame: the four leg pairs step in a back-to-front wave and the head sways. This motion model is plausible, not motion-captured. Rendered with 5 wavelengths and 19 condenser points instead of 9 × 61, so colours are slightly coarser than in the still images.</figcaption>
+    </figure>
+    <figure style="margin-top:22px">
+      <img src="img/anim/walk_rig_preview.gif" alt="Work-in-progress preview of the new articulated walking model" style="max-width:480px;background:#000" loading="lazy">
+      <figcaption><span class="tag sub">work in progress</span> New motion model, first preview (3.2 s, 12 fps). Instead of pushing blobs of tissue around, an articulated rig bends the trunk along a midline that follows the head's path, bends each lobopod leg from base to tip, and keeps every claw fixed on the slide while it is in stance (inverse kinematics). Gait from Nirody et al. 2021 and Anderson et al. 2024. This preview uses only one wavelength and 7 condenser points, so it shows a coarse interference pattern; the motion is being refined against real footage.</figcaption>
     </figure>
   </section>
 
@@ -230,19 +244,23 @@ figcaption { font-size: 13px; color: var(--muted); }
     { key: "k030", label: "Köhler, standard", na: 0.30 },
     { key: "k040", label: "Köhler, fully open", na: 0.40 },
   ];
-  const state = { illum: "k030", optics: "traced", view: "detail", idx: 9, holding: false };
+  const state = { illum: "k030", optics: "traced", view: "detail", idx: 9, holding: false, rot: 0, roll: 0 };
   let built = new Set(["k030"]);
+  let rolls = [0], rollIllum = "k030";
+  const ROLL_NAMES = { 0: "belly down", 90: "on its side", 180: "on its back", 270: "on its other side" };
   const img = document.getElementById("view");
   const focus = document.getElementById("focus");
   const rDepth = document.getElementById("r-depth");
   const rOpt = document.getElementById("r-optics");
   const sbLine = document.getElementById("sbline"), sbLabel = document.getElementById("sblabel");
   const ocular = document.getElementById("ocular");
-  const src = (illum, optics, view, d) => `img/${illum}/${optics}/${view}_f${d}.jpg`;
+  const src = (illum, optics, view, d, roll = 0) => roll
+    ? `img/views/r${String(roll).padStart(3, "0")}/${optics}/${view}_f${d}.jpg`
+    : `img/${illum}/${optics}/${view}_f${d}.jpg`;
   const cache = [];
-  const preload = (illum) => {
+  const preload = (illum, roll = 0) => {
     for (const o of ["traced", "ideal"]) for (const v of ["eye", "detail"]) for (const d of DEPTHS) {
-      const im = new Image(); im.src = src(illum, o, v, d); cache.push(im);
+      const im = new Image(); im.src = src(illum, o, v, d, roll); cache.push(im);
     }
   };
   const illumBox = document.getElementById("illum");
@@ -251,18 +269,26 @@ figcaption { font-size: 13px; color: var(--muted); }
     illumBox.replaceChildren(...PRESETS.map((p) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.disabled = !built.has(p.key);
+      b.disabled = !built.has(p.key) || (state.roll !== 0 && p.key !== rollIllum);
       b.setAttribute("aria-pressed", p.key === state.illum);
       b.innerHTML = `<span>${p.label}</span><small>NA ${p.na.toFixed(2)}</small>`;
-      if (b.disabled) b.title = "Not computed yet";
+      if (b.disabled) b.title = built.has(p.key) ? "Other roll angles are computed for standard Köhler only" : "Not computed yet";
       b.onclick = () => { state.illum = p.key; preload(p.key); drawIllum(); render(); };
       return b;
     }));
     illumNote.hidden = PRESETS.every((p) => built.has(p.key));
   }
+  const rotIn = document.getElementById("rot"), rollIn = document.getElementById("roll");
+  const rRot = document.getElementById("r-rot"), rRoll = document.getElementById("r-roll");
+  function drawRoll() {
+    rollIn.disabled = rolls.length < 2;
+    rollIn.title = rollIn.disabled ? "Other roll angles are not computed yet (python scripts/render_views.py)" : "";
+  }
   fetch("img/manifest.json").then((r) => r.ok ? r.json() : null).then((m) => {
     if (m && m.presets) { built = new Set(Object.keys(m.presets)); drawIllum(); }
+    if (m && m.views) { rolls = m.views.rolls.slice().sort((a, b) => a - b); rollIllum = m.views.illum || "k030"; drawRoll(); }
   }).catch(() => {});
+  drawRoll();
   drawIllum();
   preload(state.illum);
   function scalebar() {
@@ -273,9 +299,17 @@ figcaption { font-size: 13px; color: var(--muted); }
   function render() {
     const optics = state.holding ? "ideal" : state.optics;
     const d = DEPTHS[state.idx];
-    img.src = src(state.illum, optics, state.view, d);
+    img.src = src(state.illum, optics, state.view, d, state.roll);
+    img.style.transform = state.rot ? `rotate(${state.rot}deg)` : "";
     document.getElementById("r-na").textContent = PRESETS.find((p) => p.key === state.illum).na.toFixed(2);
     rDepth.textContent = "−" + Math.abs(d) + " µm";
+    const rn = ROLL_NAMES[state.roll] || "tilted";
+    rRot.textContent = state.rot + "°";
+    rRoll.textContent = `${state.roll}° · ${rn}`;
+    rotIn.value = state.rot; rollIn.value = state.roll;
+    document.getElementById("r-orient").textContent = `roll ${state.roll}° · turn ${state.rot}°`;
+    const [top, bot] = state.roll === 0 ? ["dorsal", "ventral"] : state.roll === 180 ? ["ventral", "dorsal"] : ["upper side", "lower side"];
+    document.getElementById("d-top").textContent = top; document.getElementById("d-bot").textContent = bot;
     rOpt.textContent = optics === "traced" ? "ray-traced" : "ideal lens";
     focus.value = state.idx;
     scalebar();
@@ -288,12 +322,41 @@ figcaption { font-size: 13px; color: var(--muted); }
   bE.onclick = () => { state.view = "eye"; setPressed(bE, bD, true); render(); };
   bD.onclick = () => { state.view = "detail"; setPressed(bE, bD, false); render(); };
   focus.oninput = () => { state.idx = +focus.value; render(); };
+  const turn = (deg) => { state.rot = ((state.rot + deg) % 360 + 360) % 360; render(); };
+  rotIn.oninput = () => { state.rot = +rotIn.value; render(); };
+  rollIn.oninput = () => {
+    // snap to the nearest roll angle that is computed
+    const v = +rollIn.value;
+    const r = rolls.reduce((best, x) => Math.abs(x - v) < Math.abs(best - v) ? x : best, rolls[0]);
+    if (r !== state.roll) {
+      state.roll = r;
+      if (r !== 0) state.illum = rollIllum;
+      preload(state.illum, r); drawIllum();
+    }
+    render();
+  };
   const step = (k) => { state.idx = Math.max(0, Math.min(20, state.idx + k)); render(); };
   ocular.addEventListener("wheel", (e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }, { passive: false });
   ocular.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown") { e.preventDefault(); step(1); }
     if (e.key === "ArrowUp") { e.preventDefault(); step(-1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); turn(-5); }
+    if (e.key === "ArrowRight") { e.preventDefault(); turn(5); }
   });
+  // mouse: grab the slide and turn it around the centre of the field
+  let grab = null;
+  const angleAt = (e) => { const r = ocular.getBoundingClientRect();
+    return Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2) * 180 / Math.PI; };
+  ocular.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    grab = { a: angleAt(e), rot: state.rot }; ocular.setPointerCapture(e.pointerId); ocular.style.cursor = "grabbing";
+  });
+  ocular.addEventListener("pointermove", (e) => {
+    if (!grab) return;
+    state.rot = Math.round(((grab.rot + angleAt(e) - grab.a) % 360 + 360) % 360); render();
+  });
+  const release = () => { grab = null; ocular.style.cursor = ""; };
+  ocular.addEventListener("pointerup", release); ocular.addEventListener("pointercancel", release);
   let ty = null;
   ocular.addEventListener("touchstart", (e) => { ty = e.touches[0].clientY; }, { passive: true });
   ocular.addEventListener("touchmove", (e) => {
