@@ -143,7 +143,7 @@ figcaption { font-size: 13px; color: var(--muted); }
 
   <div class="stage">
     <div class="scope">
-      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Drag to roll or turn the animal, right-drag to move the slide, wheel to zoom, up and down arrow keys to focus.">
+      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Drag to roll or turn the animal, right-drag to move the slide, mouse wheel or up and down arrow keys to focus, Ctrl+wheel to zoom.">
         <div class="spec" id="spec">
           <img id="v-eye" class="v-eye" alt="" src="img/k030/traced/eye_f-30.jpg" draggable="false">
           <img id="v-detail" class="v-detail" alt="Simulated view through the eyepiece" src="img/k030/traced/detail_f-30.jpg" draggable="false">
@@ -164,7 +164,7 @@ figcaption { font-size: 13px; color: var(--muted); }
         <button class="nc-btn nc-l" id="nc-l" title="Turn 90° left" aria-label="Turn 90 degrees left"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M13 9a5 5 0 1 1-2-5.5M11 1v3.5H7.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
         <button class="nc-btn nc-r" id="nc-r" title="Turn 90° right" aria-label="Turn 90 degrees right"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M3 9a5 5 0 1 0 2-5.5M5 1v3.5h3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
       </div>
-      <p class="hint"><b>Drag</b> inside the ring: roll the animal · on the ring: turn the slide · <b>right-drag</b>, <b>Shift+drag</b> or two fingers: move the slide · <b>wheel</b> or pinch: zoom · <b>↑ ↓</b> or Shift+wheel: focus · double-click: home</p>
+      <p class="hint"><b>Drag</b> inside the ring: roll the animal · on the ring: turn the slide · <b>right-drag</b>, <b>Shift+drag</b> or two fingers: move the slide · <b>wheel</b> or <b>↑ ↓</b>: focus · <b>Ctrl+wheel</b>, pinch or <b>+ −</b>: zoom · double-click: home</p>
     </div>
 
     <aside class="controls" aria-label="Controls">
@@ -450,11 +450,18 @@ figcaption { font-size: 13px; color: var(--muted); }
   };
   ocular.addEventListener("pointerup", end); ocular.addEventListener("pointercancel", end);
   ocular.addEventListener("dblclick", home);
+  let lastWheel = 0;
   ocular.addEventListener("wheel", (e) => {
     e.preventDefault();
-    if (e.shiftKey) { step((e.deltaY || e.deltaX) > 0 ? 1 : -1); return; }
-    const [cx, cy] = centre();
-    zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - cx, e.clientY - cy);
+    if (e.ctrlKey) {   // Ctrl+wheel and trackpad pinch zoom; the plain wheel is the fine-focus knob
+      const [cx, cy] = centre();
+      zoomAt(Math.exp(-e.deltaY * 0.004), e.clientX - cx, e.clientY - cy);
+      return;
+    }
+    const now = performance.now();
+    if (now - lastWheel < 60) return;              // one focus step per notch, also for smooth wheels
+    lastWheel = now;
+    step((e.deltaY || e.deltaX) > 0 ? 1 : -1);
   }, { passive: false });
   ocular.addEventListener("keydown", (e) => {
     const k = e.key;

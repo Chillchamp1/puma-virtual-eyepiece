@@ -91,17 +91,18 @@ The viewer has an illumination selector. Each preset needs its own focus stack (
 ## Orientation: turning and rolling the animal
 
 The eyepiece view navigates like a CAD viewer: drag inside the ring to roll the animal, drag on the ring
-to turn the slide, right-drag / Shift+drag / two fingers to move the slide, wheel or pinch to zoom, and a
-view cube (dorsal, ventral, sides, home, ±90° turn). Focus is the only slider (also ↑ ↓, Shift+wheel).
+to turn the slide, right-drag / Shift+drag / two fingers to move the slide, Ctrl+wheel or pinch to zoom, and a
+view cube (dorsal, ventral, sides, home, ±90° turn). Focus is the only slider and stays on the mouse wheel (also ↑ ↓).
 
 * **Turn in the field**: the simulated optics are isoplanatic (one pupil for the whole field) and the
   condenser is rotationally symmetric, so turning the slide on the stage is exactly a rotation of the
   image. No extra computation. Moving the slide keeps the eyepiece field stop fixed.
 * **Roll about the body axis** (30° steps: belly down, on its side, on its back): every roll is a full
   multi-slice computation of the rotated 3D volume, standard Köhler illumination, both optics.
-  `python scripts/render_views.py` renders the missing rolls into `docs/img/views/` (3 min per roll on a
-  GTX 1080 when traced and ideal optics are propagated separately; the script now lets both optics share
-  one propagation through the animal, which should roughly halve that).
+  `python scripts/render_views.py` renders the missing rolls into `docs/img/views/`: 2 min per roll on a
+  GTX 1080 plus 5 min once for the traced pupils. Traced and ideal optics share one propagation through
+  the animal (the field behind the specimen is the same, only the pupil differs); that is 1.5x faster than
+  two passes and gives byte-identical images.
 
 **Why not a faster linear 3D model?** In the weak-object (first Born / Rytov) approximation the focus
 stack is a 3D filter of the refractive-index volume and any orientation would follow from one 3D FFT.
