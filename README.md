@@ -2,6 +2,10 @@
 
 A physically computed view through the open-source **[PUMA microscope](https://github.com/TadPath/PUMA)** at a real, nanoCT-scanned tardigrade.
 
+> **The PUMA microscope was invented and designed by Dr Paul J. Tadrous ([@TadPath](https://github.com/TadPath)).**
+> All microscope hardware, CAD and documentation come from his project: **https://github.com/TadPath/PUMA** ([OptArc](https://www.optarc.co.uk/)).
+> If you use or build on this work, please cite his paper: P. J. Tadrous, *"PUMA – An open-source 3D-printed direct vision microscope with augmented reality and spatial light modulator functions"*, Journal of Microscopy 283(3):259–280 (2021), https://doi.org/10.1111/jmi.13043
+
 **Live viewer:** https://chillchamp1.github.io/puma-virtual-eyepiece/
 
 The viewer lets you:
@@ -104,7 +108,7 @@ To rebuild the 3D model you need FreeCAD 0.20.2 (the PUMA files can break when r
 
 ## Credits and licences
 
-- **PUMA microscope**: Dr Paul J. Tadrous, https://github.com/TadPath/PUMA. The CAD is GPL-3.0 and the documentation GFDL-1.3. The 3D model in `docs/model/` is derived from the PUMA CAD and distributed under GPL-3.0.
+- **PUMA microscope**: invented and designed by Dr Paul J. Tadrous ([@TadPath](https://github.com/TadPath)), https://github.com/TadPath/PUMA. Paper: J. Microsc. 283(3):259–280 (2021), https://doi.org/10.1111/jmi.13043. The CAD is GPL-3.0 and the documentation GFDL-1.3. The 3D model in `docs/model/` is derived from the PUMA CAD and distributed under GPL-3.0.
 - **Tardigrade nanoCT**: Gross V., Müller M., Hehn L., Ferstl S., Allner S., Dierolf M., Achterhold K., Mayer G., Pfeiffer F. (2019). *X-ray imaging of a water bear offers a new look at tardigrade internal anatomy.* Zoological Letters 5:14, https://doi.org/10.1186/s40851-019-0130-6. Licensed CC BY 4.0. The simulated images contain data derived from this scan and are shared under CC BY 4.0 with this attribution. The raw data are not redistributed here; `scripts/fetch_data.py` downloads them.
 - **Optical designs**: US 4,212,515 (Olympus), US 3,888,567 (American Optical). The patents have expired, so the designs are public.
 - **Eye model**: Navarro R., Santamaría J., Bescós J. (1985), JOSA A 2(8):1273.
