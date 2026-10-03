@@ -91,8 +91,8 @@ The viewer has an illumination selector. Each preset needs its own focus stack (
 ## Orientation: turning and rolling the animal
 
 The eyepiece view navigates like a CAD viewer: drag inside the ring to roll the animal, drag on the ring
-to turn the slide, right-drag / Shift+drag / two fingers to move the slide, Ctrl+wheel or pinch to zoom, and a
-view cube (dorsal, ventral, sides, home, ±90° turn). Focus is the only slider and stays on the mouse wheel (also ↑ ↓).
+to turn the slide, right-drag / Shift+drag / two fingers to move the slide, Ctrl+wheel or the − + buttons to zoom, and a
+view cube (dorsal, ventral, sides, home, ±90° turn). Focus is the only slider and stays on the mouse wheel (pinch on touch screens, also ↑ ↓).
 
 * **Turn in the field**: the simulated optics are isoplanatic (one pupil for the whole field) and the
   condenser is rotationally symmetric, so turning the slide on the stage is exactly a rotation of the

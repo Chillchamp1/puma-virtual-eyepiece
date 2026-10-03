@@ -47,6 +47,8 @@ p { margin: 0; }
 .ctl-label { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: block; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--bench); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
 .seg button { font: 500 13.5px/1.2 var(--f-body); color: var(--muted); background: transparent; border: 0; border-radius: 7px; padding: 9px 8px; cursor: pointer; }
+.seg:has(.zbtn) { grid-template-columns: 34px 1fr 1fr 34px; }
+.seg button.zbtn { font-size: 17px; padding: 6px 0; color: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bench); }
 .seg button:focus-visible, .knobwrap input:focus-visible, .hold:focus-visible, .ocular:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 .readout { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; margin: 0; }
@@ -143,7 +145,7 @@ figcaption { font-size: 13px; color: var(--muted); }
 
   <div class="stage">
     <div class="scope">
-      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Drag to roll or turn the animal, right-drag to move the slide, mouse wheel or up and down arrow keys to focus, Ctrl+wheel to zoom.">
+      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Drag to roll or turn the animal, right-drag to move the slide, mouse wheel, pinch or up and down arrow keys to focus, Ctrl+wheel or the plus and minus buttons to zoom.">
         <div class="spec" id="spec">
           <img id="v-eye" class="v-eye" alt="" src="img/k030/traced/eye_f-30.jpg" draggable="false">
           <img id="v-detail" class="v-detail" alt="Simulated view through the eyepiece" src="img/k030/traced/detail_f-30.jpg" draggable="false">
@@ -164,7 +166,7 @@ figcaption { font-size: 13px; color: var(--muted); }
         <button class="nc-btn nc-l" id="nc-l" title="Turn 90° left" aria-label="Turn 90 degrees left"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M13 9a5 5 0 1 1-2-5.5M11 1v3.5H7.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
         <button class="nc-btn nc-r" id="nc-r" title="Turn 90° right" aria-label="Turn 90 degrees right"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M3 9a5 5 0 1 0 2-5.5M5 1v3.5h3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
       </div>
-      <p class="hint"><b>Drag</b> inside the ring: roll the animal · on the ring: turn the slide · <b>right-drag</b>, <b>Shift+drag</b> or two fingers: move the slide · <b>wheel</b> or <b>↑ ↓</b>: focus · <b>Ctrl+wheel</b>, pinch or <b>+ −</b>: zoom · double-click: home</p>
+      <p class="hint"><b>Drag</b> inside the ring: roll the animal · on the ring: turn the slide · <b>right-drag</b>, <b>Shift+drag</b> or two fingers: move the slide · <b>wheel</b>, <b>pinch</b> or <b>↑ ↓</b>: focus · <b>Ctrl+wheel</b> or <b>− +</b>: zoom · double-click: home</p>
     </div>
 
     <aside class="controls" aria-label="Controls">
@@ -184,8 +186,10 @@ figcaption { font-size: 13px; color: var(--muted); }
       <div>
         <span class="ctl-label">Zoom</span>
         <div class="seg" role="group" aria-label="Zoom presets">
+          <button id="b-zout" class="zbtn" aria-label="Zoom out">−</button>
           <button id="b-eye" aria-pressed="false">Eyepiece 1 mm</button>
           <button id="b-detail" aria-pressed="true">Detail</button>
+          <button id="b-zin" class="zbtn" aria-label="Zoom in">+</button>
         </div>
       </div>
       <div class="knobwrap">
@@ -421,8 +425,11 @@ figcaption { font-size: 13px; color: var(--muted); }
       const [p, q] = [...pts.values()];
       const other = [...pts.entries()].find(([id]) => id !== e.pointerId)[1];
       const d1 = Math.hypot(prev[0] - other[0], prev[1] - other[1]), d2 = Math.hypot(p[0] - q[0], p[1] - q[1]);
+      // pinch is the fine-focus knob on touch screens (like the mouse wheel): spread = deeper
+      drag.acc = (drag.acc || 0) + (d2 - d1);
+      if (Math.abs(drag.acc) > 26) { step(drag.acc > 0 ? 1 : -1); drag.acc = 0; }
       state.px += (e.clientX - prev[0]) / 2; state.py += (e.clientY - prev[1]) / 2;
-      if (d1 > 0) zoomAt(d2 / d1, (p[0] + q[0]) / 2 - cx, (p[1] + q[1]) / 2 - cy); else render();
+      clampPan(); render();
       return;
     }
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -485,6 +492,8 @@ figcaption { font-size: 13px; color: var(--muted); }
   bI.onclick = () => { state.optics = "ideal"; setPressed(bT, bI, false); render(); };
   $("b-eye").onclick = () => { state.zoom = 1; state.px = state.py = 0; render(); };
   $("b-detail").onclick = () => { state.zoom = Z_DETAIL; state.px = state.py = 0; render(); };
+  $("b-zin").onclick = () => zoomAt(1.4, 0, 0);
+  $("b-zout").onclick = () => zoomAt(1 / 1.4, 0, 0);
   focus.oninput = () => { state.idx = +focus.value; render(); };
   const hold = $("hold");
   const on = () => { state.holding = true; render(); }, off = () => { state.holding = false; render(); };
