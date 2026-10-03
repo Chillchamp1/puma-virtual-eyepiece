@@ -81,30 +81,8 @@ p { margin: 0; }
 .v-detail { left: 41.306%; top: 41.306%; width: 17.388%; height: 17.388%; }
 .ring { position: absolute; inset: 14%; border-radius: 50%; border: 1px dashed rgba(201,162,92,.0); pointer-events: none; transition: border-color .2s; }
 .ocular:hover .ring, .ocular.dragging .ring { border-color: rgba(201,162,92,.45); }
-.navcube { position: absolute; top: 0; right: 0; width: 118px; height: 118px; z-index: 3; }
-.cube-vp { position: absolute; left: 21px; top: 21px; width: 76px; height: 76px; perspective: 420px; }
-.cube { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .28s ease; }
-.cube.live { transition: none; }
-.face { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; font: 600 9.5px var(--f-mono); letter-spacing: .08em;
-  color: var(--ink); background: rgba(36,42,46,.94); border: 1px solid #56606a; backface-visibility: hidden; cursor: pointer; }
-.face:hover:not(:disabled) { background: var(--brass); color: var(--bench); }
-.face:disabled { cursor: not-allowed; color: var(--muted); background: rgba(28,32,35,.94); }
-.f-front { transform: translateZ(38px); }
-.f-back { transform: rotateY(180deg) translateZ(38px); }
-.f-right { transform: rotateY(90deg) translateZ(38px); }
-.f-left { transform: rotateY(-90deg) translateZ(38px); }
-.f-top { transform: rotateX(90deg) translateZ(38px); }
-.f-bottom { transform: rotateX(-90deg) translateZ(38px); }
-.nc-btn { position: absolute; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border-radius: 6px;
-  border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; }
-.nc-btn:hover { color: var(--ink); border-color: var(--brass); }
-.nc-btn:focus-visible, .face:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
-.nc-home { left: 0; top: 0; }
-.nc-l { left: 0; bottom: 0; }
-.nc-r { right: 0; bottom: 0; }
 .hint { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 14px; }
 .hint b { color: var(--ink); font-weight: 600; }
-@media (max-width: 640px) { .navcube { transform: scale(.8); transform-origin: top right; } }
 
 /* ---------------- instrument */
 .instrument { display: grid; gap: 24px; }
@@ -145,7 +123,7 @@ figcaption { font-size: 13px; color: var(--muted); }
 
   <div class="stage">
     <div class="scope">
-      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Drag to roll or turn the animal, right-drag to move the slide, mouse wheel, pinch or up and down arrow keys to focus, Ctrl+wheel or the plus and minus buttons to zoom.">
+      <div class="ocular" id="ocular" tabindex="0" aria-label="Eyepiece view. Drag to roll or turn the animal; mouse wheel, pinch or up and down arrow keys to focus.">
         <div class="spec" id="spec">
           <img id="v-eye" class="v-eye" alt="" src="img/k030/traced/eye_f-30.jpg" draggable="false">
           <img id="v-detail" class="v-detail" alt="Simulated view through the eyepiece" src="img/k030/traced/detail_f-30.jpg" draggable="false">
@@ -153,20 +131,7 @@ figcaption { font-size: 13px; color: var(--muted); }
         <div class="ring" id="ring" aria-hidden="true"></div>
         <div class="scalebar"><i id="sbline" style="width:110px"></i><span id="sblabel">20 µm</span></div>
       </div>
-      <div class="navcube" id="navcube">
-        <div class="cube-vp"><div class="cube" id="cube">
-          <button class="face f-front" data-roll="0" title="Dorsal view (belly down)">DORSAL</button>
-          <button class="face f-back" data-roll="180" title="Ventral view (on its back)">VENTRAL</button>
-          <button class="face f-bottom" data-roll="90" title="Side view">SIDE</button>
-          <button class="face f-top" data-roll="270" title="Other side view">SIDE</button>
-          <button class="face f-right" disabled title="Looking along the body axis needs pitch renders (not computed)">HEAD</button>
-          <button class="face f-left" disabled title="Looking along the body axis needs pitch renders (not computed)">TAIL</button>
-        </div></div>
-        <button class="nc-btn nc-home" id="nc-home" title="Home view" aria-label="Home view"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M2 8 8 2.5 14 8M4 7v6.5h3V10h2v3.5h3V7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
-        <button class="nc-btn nc-l" id="nc-l" title="Turn 90° left" aria-label="Turn 90 degrees left"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M13 9a5 5 0 1 1-2-5.5M11 1v3.5H7.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
-        <button class="nc-btn nc-r" id="nc-r" title="Turn 90° right" aria-label="Turn 90 degrees right"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M3 9a5 5 0 1 0 2-5.5M5 1v3.5h3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
-      </div>
-      <p class="hint"><b>Drag</b> inside the ring: roll the animal · on the ring: turn the slide · <b>right-drag</b>, <b>Shift+drag</b> or two fingers: move the slide · <b>wheel</b>, <b>pinch</b> or <b>↑ ↓</b>: focus · <b>Ctrl+wheel</b> or <b>− +</b>: zoom · double-click: home</p>
+      <p class="hint"><b>Drag</b> inside the ring: roll the animal · on the ring: turn the slide · <b>wheel</b>, <b>pinch</b> or <b>↑ ↓</b>: focus · <b>← →</b>: turn · double-click: back to the start view</p>
     </div>
 
     <aside class="controls" aria-label="Controls">
@@ -294,7 +259,7 @@ figcaption { font-size: 13px; color: var(--muted); }
                   roll: 0, rollLive: 0, turn: 0, zoom: Z_DETAIL, px: 0, py: 0 };
   let built = new Set(["k030"]), rolls = [0], rollIllum = "k030";
   const $ = (id) => document.getElementById(id);
-  const ocular = $("ocular"), spec = $("spec"), vEye = $("v-eye"), vDet = $("v-detail"), cube = $("cube");
+  const ocular = $("ocular"), spec = $("spec"), vEye = $("v-eye"), vDet = $("v-detail");
   const focus = $("focus");
   const ROLL_NAMES = { 0: "dorsal", 90: "side", 180: "ventral", 270: "other side" };
   const norm = (a) => ((a % 360) + 360) % 360;
@@ -347,9 +312,6 @@ figcaption { font-size: 13px; color: var(--muted); }
     } catch (e) { /* keep black */ }
   }
   vEye.addEventListener("load", bgFromEye);
-  function cubeTransform(roll) {
-    cube.style.transform = `rotateX(-14deg) rotateY(18deg) rotateZ(${state.turn}deg) rotateX(${roll}deg)`;
-  }
   function render() {
     const optics = state.holding ? "ideal" : state.optics;
     const d = DEPTHS[state.idx];
@@ -357,7 +319,6 @@ figcaption { font-size: 13px; color: var(--muted); }
     if (vEye.getAttribute("src") !== e) vEye.src = e;
     if (vDet.getAttribute("src") !== t) vDet.src = t;
     spec.style.transform = `translate(${state.px}px, ${state.py}px) rotate(${state.turn}deg) scale(${state.zoom})`;
-    cubeTransform(state.rollLive);
     $("r-na").textContent = PRESETS.find((p) => p.key === state.illum).na.toFixed(2);
     $("r-depth").textContent = "−" + Math.abs(d) + " µm";
     $("r-optics").textContent = optics === "traced" ? "ray-traced" : "ideal lens";
@@ -378,26 +339,19 @@ figcaption { font-size: 13px; color: var(--muted); }
       if (n !== 0) state.illum = rollIllum;
       drawIllum(); preloadStack();
     }
-    if (snap) {   // settle the cube on the computed view, taking the short way round
+    if (snap) {   // settle on the computed view, taking the short way round
       const target = state.rollLive + (((state.roll - norm(state.rollLive)) + 540) % 360 - 180);
       state.rollLive = target;
     }
     render();
   }
-  function clampPan() {
-    const lim = ocular.clientWidth * 0.5 * Math.max(0.35, state.zoom * DETAIL_UM / FIELD_UM);
-    state.px = Math.max(-lim, Math.min(lim, state.px)); state.py = Math.max(-lim, Math.min(lim, state.py));
-  }
-  function zoomAt(f, cx, cy) {   // zoom by factor f about the point (cx, cy) relative to the field centre
-    const z = Math.max(1, Math.min(Z_MAX, state.zoom * f)); f = z / state.zoom;
-    state.px = cx - (cx - state.px) * f; state.py = cy - (cy - state.py) * f; state.zoom = z;
-    if (z === 1) { state.px = 0; state.py = 0; }
-    clampPan(); render();
+  function zoomAt(f) {   // digital zoom about the field centre (the slide is not moved)
+    state.zoom = Math.max(1, Math.min(Z_MAX, state.zoom * f)); render();
   }
   const home = () => { state.turn = 0; state.zoom = Z_DETAIL; state.px = state.py = 0; setRoll(0); };
   const step = (k) => { state.idx = Math.max(0, Math.min(20, state.idx + k)); render(); };
 
-  // ---------- pointer navigation (orbit / turn / pan / pinch)
+  // ---------- pointer navigation: roll (inside the ring), turn (on the ring), pinch = focus
   const centre = () => { const r = ocular.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width / 2]; };
   const pts = new Map();
   let drag = null;
@@ -409,11 +363,9 @@ figcaption { font-size: 13px; color: var(--muted); }
     const [cx, cy, R] = centre();
     if (pts.size === 2) { drag = { mode: "pinch" }; return; }
     const r = Math.hypot(e.clientX - cx, e.clientY - cy) / R;
-    const pan = e.button === 1 || e.button === 2 || e.shiftKey;
-    drag = { mode: pan ? "pan" : r < 0.72 ? "orbit" : "turn", x: e.clientX, y: e.clientY,
+    drag = { mode: r < 0.72 ? "orbit" : "turn", x: e.clientX, y: e.clientY,
              a: Math.atan2(e.clientY - cy, e.clientX - cx), turn: state.turn, roll: state.rollLive, px: state.px, py: state.py };
     if (drag.mode === "orbit") preloadRolls();
-    if (drag.mode !== "pan") cube.classList.add("live");
     ocular.classList.add("dragging");
   });
   ocular.addEventListener("pointermove", (e) => {
@@ -428,13 +380,10 @@ figcaption { font-size: 13px; color: var(--muted); }
       // pinch is the fine-focus knob on touch screens (like the mouse wheel): spread = deeper
       drag.acc = (drag.acc || 0) + (d2 - d1);
       if (Math.abs(drag.acc) > 26) { step(drag.acc > 0 ? 1 : -1); drag.acc = 0; }
-      state.px += (e.clientX - prev[0]) / 2; state.py += (e.clientY - prev[1]) / 2;
-      clampPan(); render();
       return;
     }
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (drag.mode === "pan") { state.px = drag.px + dx; state.py = drag.py + dy; clampPan(); render(); }
-    else if (drag.mode === "turn") {
+    if (drag.mode === "turn") {
       const a = Math.atan2(e.clientY - cy, e.clientX - cx);
       state.turn += (((a - drag.a) * 180 / Math.PI + 540) % 360) - 180; drag.a = a; render();
     } else {
@@ -447,7 +396,6 @@ figcaption { font-size: 13px; color: var(--muted); }
   const end = (e) => {
     pts.delete(e.pointerId);
     if (pts.size) return;
-    cube.classList.remove("live");
     if (drag && drag.mode === "orbit") setRoll(state.rollLive);
     drag = null; ocular.classList.remove("dragging");
   };
@@ -458,7 +406,7 @@ figcaption { font-size: 13px; color: var(--muted); }
     e.preventDefault();
     if (e.ctrlKey) {   // Ctrl+wheel and trackpad pinch zoom; the plain wheel is the fine-focus knob
       const [cx, cy] = centre();
-      zoomAt(Math.exp(-e.deltaY * 0.004), e.clientX - cx, e.clientY - cy);
+      zoomAt(Math.exp(-e.deltaY * 0.004));
       return;
     }
     const now = performance.now();
@@ -472,18 +420,12 @@ figcaption { font-size: 13px; color: var(--muted); }
     else if (k === "ArrowUp") step(-1);
     else if (k === "ArrowLeft") { if (e.shiftKey) setRoll(state.rollLive - 30); else { state.turn -= 5; render(); } }
     else if (k === "ArrowRight") { if (e.shiftKey) setRoll(state.rollLive + 30); else { state.turn += 5; render(); } }
-    else if (k === "+" || k === "=") zoomAt(1.25, 0, 0);
-    else if (k === "-") zoomAt(0.8, 0, 0);
+    else if (k === "+" || k === "=") zoomAt(1.25);
+    else if (k === "-") zoomAt(0.8);
     else if (k === "Home") home();
     else return;
     e.preventDefault();
   });
-
-  // ---------- view cube
-  cube.querySelectorAll(".face[data-roll]").forEach((f) => f.addEventListener("click", () => { state.turn = 0; setRoll(+f.dataset.roll); }));
-  $("nc-home").onclick = home;
-  $("nc-l").onclick = () => { state.turn -= 90; render(); };
-  $("nc-r").onclick = () => { state.turn += 90; render(); };
 
   // ---------- panel
   function setPressed(a, b, on) { a.setAttribute("aria-pressed", on); b.setAttribute("aria-pressed", !on); }
@@ -492,15 +434,15 @@ figcaption { font-size: 13px; color: var(--muted); }
   bI.onclick = () => { state.optics = "ideal"; setPressed(bT, bI, false); render(); };
   $("b-eye").onclick = () => { state.zoom = 1; state.px = state.py = 0; render(); };
   $("b-detail").onclick = () => { state.zoom = Z_DETAIL; state.px = state.py = 0; render(); };
-  $("b-zin").onclick = () => zoomAt(1.4, 0, 0);
-  $("b-zout").onclick = () => zoomAt(1 / 1.4, 0, 0);
+  $("b-zin").onclick = () => zoomAt(1.4);
+  $("b-zout").onclick = () => zoomAt(1 / 1.4);
   focus.oninput = () => { state.idx = +focus.value; render(); };
   const hold = $("hold");
   const on = () => { state.holding = true; render(); }, off = () => { state.holding = false; render(); };
   hold.addEventListener("pointerdown", on); hold.addEventListener("pointerup", off); hold.addEventListener("pointerleave", off);
   hold.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") on(); });
   hold.addEventListener("keyup", off);
-  window.addEventListener("resize", () => { clampPan(); render(); });
+  window.addEventListener("resize", render);
   drawIllum(); preloadStack(); render();
 })();
 </script>

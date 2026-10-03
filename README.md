@@ -72,7 +72,34 @@ Result: blue (450 nm) comes to focus **11 µm deeper** than green, which is the 
 - Tissue refractive indices are assumptions. No measured values exist for tardigrades.
 - The scanned animal was critical-point dried, so it is shrunken (152 µm; living adults are 250–500 µm).
 - The 3D assembly is approximate. The parts are original, their positions are placed by hand.
-- The walking animation uses a plausible gait model, not motion-capture data.
+- The walking animation is a rigged model with literature gait data, not motion capture (see below).
+
+## Walking animation
+
+`sim/animate_specimen.py` turns the static nanoCT volume into a walking animal; `sim/render_anim.py`
+images every frame through the same wave optics (focal plane 36 µm below the dorsal surface).
+
+* **Rig, built from the volume:** the 8 lobopod legs are the protrusions an 8 µm ball cannot enter
+  (morphological opening). Each gets a base, an axis and a region mask. The trunk bends about a midline
+  so cross-sections stay rigid; legs bend smoothly from base to tip and telescope.
+* **Motion:** the head's path (speed, distance-based heading, a head-led turn) is integrated, and every
+  body section follows it (follow-the-leader), so a turn travels backwards along the body. Gait from
+  Nirody et al. 2021 and Anderson et al. 2024: back-to-front stepping wave, contralateral legs in
+  antiphase, duty factor ~0.7, legs IV mostly holding on. Each claw is placed on the slide at touchdown
+  and stays there during stance (inverse kinematics), with the gait phase tied to the distance walked.
+  A stop with head retraction, a lateral head scan and legs I tapping, plus trunk yaw, segmental
+  bulging and length change, add the behaviour seen in real footage.
+* **Warp:** a backward warp on the GPU (CuPy). The trunk maps are inverted exactly by projection on
+  the posed midline; legs by Newton iteration. No tissue is smeared: vacated leg regions become water.
+* **Refinement:** the motion went through eight review rounds against real brightfield footage
+  (Wikimedia Commons, CC BY-SA). It is being fitted to body kinematics measured from that footage
+  (bend angle, head yaw, length change, speed).
+
+```bash
+cd sim
+python render_anim.py --out ../renders/motion --proj-only --fps 8      # fast motion check (projections)
+python render_anim.py --out ../renders/anim --pupil traced --nlam 5 --rings 3 --fps 8   # ~75 s/frame on a GTX 1080
+```
 
 ## Illumination presets
 
@@ -90,13 +117,13 @@ The viewer has an illumination selector. Each preset needs its own focus stack (
 
 ## Orientation: turning and rolling the animal
 
-The eyepiece view navigates like a CAD viewer: drag inside the ring to roll the animal, drag on the ring
-to turn the slide, right-drag / Shift+drag / two fingers to move the slide, Ctrl+wheel or the − + buttons to zoom, and a
-view cube (dorsal, ventral, sides, home, ±90° turn). Focus is the only slider and stays on the mouse wheel (pinch on touch screens, also ↑ ↓).
+On the eyepiece view, drag inside the ring to roll the animal about its body axis and drag on the ring
+(or press ← →) to turn the slide. Focus is the only slider and stays on the mouse wheel (pinch on touch
+screens, also ↑ ↓). The zoom buttons switch between the 1 mm eyepiece field and a digital detail view.
 
 * **Turn in the field**: the simulated optics are isoplanatic (one pupil for the whole field) and the
   condenser is rotationally symmetric, so turning the slide on the stage is exactly a rotation of the
-  image. No extra computation. Moving the slide keeps the eyepiece field stop fixed.
+  image. No extra computation.
 * **Roll about the body axis** (30° steps: belly down, on its side, on its back): every roll is a full
   multi-slice computation of the rotated 3D volume, standard Köhler illumination, both optics.
   `python scripts/render_views.py` renders the missing rolls into `docs/img/views/`: 2 min per roll on a
