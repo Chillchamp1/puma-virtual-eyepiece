@@ -66,6 +66,8 @@ p { margin: 0; }
 .illum button:disabled { cursor: not-allowed; color: var(--muted); opacity: .55; }
 .illum button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 .illum-note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.illum-note.active { color: var(--ink); }
+.rolltag { display: block; font-style: normal; font-family: var(--f-mono); font-size: 10.5px; color: var(--brass); margin-top: 2px; }
 .illum-note code { font-family: var(--f-mono); font-size: 11.5px; }
 .hold { font: 600 13.5px var(--f-body); color: var(--bench); background: var(--brass); border: 0; border-radius: 9px; padding: 11px 12px; cursor: pointer; }
 .hold:active { filter: brightness(.9); }
@@ -146,7 +148,7 @@ figcaption { font-size: 13px; color: var(--muted); }
         <span class="ctl-label">Illumination</span>
         <div class="illum" id="illum" role="group" aria-label="Choose illumination"></div>
         <p class="illum-note" id="illum-note" hidden>Greyed-out settings are not computed yet. Run <code>python scripts/render_illumination.py</code> to add them.</p>
-        <p class="illum-note" id="roll-note" hidden>Rolled views are computed for standard Köhler only.</p>
+        <p class="illum-note" id="roll-note">Only <b>standard Köhler</b> has been rendered in all orientations. With any other illumination the animal lies belly-down; rolling it switches back to standard Köhler.</p>
       </div>
       <div>
         <span class="ctl-label">Zoom</span>
@@ -281,15 +283,21 @@ figcaption { font-size: 13px; color: var(--muted); }
     illumBox.replaceChildren(...PRESETS.map((p) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.disabled = !built.has(p.key) || (state.roll !== 0 && p.key !== rollIllum);
+      b.disabled = !built.has(p.key);
       b.setAttribute("aria-pressed", p.key === state.illum);
-      b.innerHTML = `<span>${p.label}</span><small>NA ${p.na.toFixed(2)}</small>`;
-      if (b.disabled) b.title = built.has(p.key) ? "Rolled views are computed for standard Köhler only" : "Not computed yet";
-      b.onclick = () => { state.illum = p.key; drawIllum(); preloadStack(); render(); };
+      const rolled = p.key === rollIllum ? `<em class="rolltag">rendered in all orientations</em>` : "";
+      b.innerHTML = `<span>${p.label}${rolled}</span><small>NA ${p.na.toFixed(2)}</small>`;
+      if (b.disabled) b.title = "Not computed yet";
+      else if (p.key !== rollIllum) b.title = "Computed for the belly-down orientation only";
+      b.onclick = () => {
+        // other illuminations exist only belly-down: the animal rolls back to the computed orientation
+        if (p.key !== rollIllum && state.roll !== 0) { state.illum = p.key; setRoll(0); return; }
+        state.illum = p.key; drawIllum(); preloadStack(); render();
+      };
       return b;
     }));
     $("illum-note").hidden = PRESETS.every((p) => built.has(p.key));
-    $("roll-note").hidden = state.roll === 0;
+    $("roll-note").classList.toggle("active", state.roll !== 0 || state.illum !== rollIllum);
   }
   fetch("img/manifest.json").then((r) => r.ok ? r.json() : null).then((m) => {
     if (m && m.presets) built = new Set(Object.keys(m.presets));
