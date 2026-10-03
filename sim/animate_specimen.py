@@ -64,26 +64,29 @@ STEP_VAR = 0.15                     # stride-to-stride variation of the step len
 PHASE_JITTER = 0.07                 # per-leg phase irregularity (cycles)
 SWING = 0.28                        # swing fraction legs I-III (duty factor 0.72)
 SWING_IV = 0.25                     # legs IV: own, visible swings (duty factor ~0.75)
-STROKE_IV = 0.6                     # legs IV stroke relative to legs I-III
-LIFT_UM = 5.0                       # claw lift during swing
+STROKE_IV = 0.8                     # legs IV stroke relative to legs I-III (visible grip and push)
+LIFT_UM = 7.0                       # claw lift during swing
 REACH_OUT_UM = 5.0                  # claw path bows outward during swing
 LEG_EXT = 1.2                       # living legs are longer than in the dried specimen (telescoped out)
 HEAD_FRAC = 0.34                    # head motions are spread over the front third of the body
-LENGTH_OSC = 0.08                   # global trunk length change at stride frequency (measured CV <= 12 %)
+LENGTH_OSC = 0.03                   # global trunk length change at stride frequency
+LENGTH_SLOW = 0.10                  # slow telescoping of the whole body (~4.5 s), as measured
 STOP_SHORTEN = 0.04                 # the trunk contracts a little while the animal stands
 HEAD_RETRACT = 0.5                  # ... and the mouth cone retracts into the head (~15 um, tip stays round)
 HEAD_TELE = 0.07                    # anterior telescoping (head extends / retracts), ~0.8 s period
 BULGE = 0.15                        # segmental widening between leg pairs, phased with their stance
-WANDER_DEG = 30.0                   # slow path wander -> C / S body shapes
-WANDER_WL = 2.5                     # wander wavelength in body lengths (>~2 gives C shapes, ~1 S shapes)
+WANDER_DEG = 35.0                   # path wander: C shapes in both directions (counter-bends)
+WANDER_WL = 1.6                     # wander wavelength in body lengths (>~2 gives C shapes, ~1 S shapes)
 HEAD_SWEEP_FRAC = 0.45              # front fraction of the body over which the head sweep bends
-ARC_DEG_PER_BL = 45.0               # constant path curvature: the animal walks in a gentle arc
+ARC_DEG_PER_BL = 25.0               # constant path curvature: the animal walks in a gentle arc
 STOP_SCAN_DEG = 30.0                # slow lateral head scan while standing (front 30 %, ~1.6 s)
 SWING_RETRACT = 0.35                # legs shorten (telescope in) during swing
 YAW_DEG = 6.0                       # lateral trunk yaw at stride frequency, travelling head -> tail
 TAIL_DEG = 5.0                      # caudal end swings with each leg-IV step
-REAR_BEND_DEG = 20.0                # slow lateral bending of the rear third (real curvature is highest there)
-SEARCH_DEG = 35.0                   # head search sweep amplitude (main period ~3.5 s, irregular, plus jitter)
+REAR_BEND_DEG = 25.0                # slow lateral bending centred at 75 % of the body (real curvature peak)
+MID_BEND_DEG = 10.0                 # stride-locked bend at legs II-III (body rocks between stance sets)
+R_MIN_VOX = 175.0                   # tightest midline bend radius (~half body width + legs): the map never folds
+SEARCH_DEG = 30.0                   # head search sweep amplitude (main period ~3.5 s, irregular, plus jitter)
 LIFT_DEG = -28.0                    # dorsal head lift while the animal stops and probes
 TURN_DEG = 45.0                     # head-led turn after the stop (radius ~1.3 body lengths)
 
@@ -284,7 +287,7 @@ class Walker:
         self._sig_inc = self._sig + 1e-6 * np.arange(len(tg))            # strictly increasing for inversion
         # the path's direction is a function of distance walked, not of time: while the animal stands
         # still its path cannot bend (a time-based heading would put a kink into the path there)
-        th = self.heading(self._sig - self.z_head, np.interp(5.0, tg, self._sig) - self.z_head)
+        th = self.heading(self._sig - self.z_head, np.interp(4.4, tg, self._sig) - self.z_head)
         self._th = th
         self._stopped = 1 - np.clip(v / (V_WALK * BODY_LEN_UM / VOX), 0, 1)
         self.debris = self._make_debris()
@@ -298,7 +301,8 @@ class Walker:
     def speed(t):
         """body lengths / s: walk, slow to a stop at ~3 s, probe, walk off faster at ~4 s."""
         ss = lambda x: _smoothstep(np.clip(x, 0, 1))
-        base = V_WALK * (1 - ss((t - 2.5) / 0.5)) + V_WALK2 * ss((t - 5.0) / 1.5)
+        base = V_WALK * (1 - ss((t - 2.5) / 0.5)) + V_WALK2 * ss((t - 4.4) / 1.0)
+        base = base * (1 - ss((t - 7.0) / 0.4) * (1 - ss((t - 8.3) / 0.5)))     # second, shorter pause
         return base * (1 + 0.08 * np.sin(2 * np.pi * t / 2.3))
 
     @staticmethod
@@ -315,22 +319,24 @@ class Walker:
     @staticmethod
     def stop_env(t):
         """0 while walking, 1 while standing (smooth)."""
-        return _smoothstep(np.clip((t - 2.8) / 0.4, 0, 1)) * (1 - _smoothstep(np.clip((t - 4.9) / 0.4, 0, 1)))
+        ss = lambda x: _smoothstep(np.clip(x, 0, 1))
+        return max(ss((t - 2.8) / 0.4) * (1 - ss((t - 4.2) / 0.4)), ss((t - 7.2) / 0.3) * (1 - ss((t - 8.2) / 0.4)))
 
     @classmethod
     def search(cls, t):
         """lateral head sweep relative to the path: irregular 1.5-3 s sweep with dwells while walking,
         a fast +-32 deg scan (~1 s) while standing."""
         g = t - 0.5 * 4.3 / (2 * np.pi) * np.sin(2 * np.pi * t / 4.3)      # period wanders, dwells
-        walk = SEARCH_DEG * np.sin(2 * np.pi * g / 3.5) + 3.0 * np.sin(2 * np.pi * t / 0.7 + 1.0) \
-            + 2.0 * np.sin(2 * np.pi * t / 0.53 + 2.0)
+        walk = SEARCH_DEG * np.sin(2 * np.pi * g / 3.5) + 4.5 * np.sin(2 * np.pi * t / 1.0 + 1.0) \
+            + 3.0 * np.sin(2 * np.pi * t / 0.5 + 2.0) + 2.0 * np.sin(2 * np.pi * t / 1.65 + 0.3)
         w = cls.stop_env(t)
         return np.radians((1 - w) * walk + w * STOP_SCAN_DEG * np.sin(2 * np.pi * (t - 2.95) / 1.6))
 
     @classmethod
     def lift(cls, t):
         """dorsal head lift and leg-I wave weight (0..1): only while the animal stands."""
-        return _smoothstep(np.clip((t - 3.05) / 0.3, 0, 1)) * (1 - _smoothstep(np.clip((t - 4.6) / 0.3, 0, 1)))
+        ss = lambda x: _smoothstep(np.clip(x, 0, 1))
+        return max(ss((t - 3.05) / 0.3) * (1 - ss((t - 4.0) / 0.3)), ss((t - 7.45) / 0.3) * (1 - ss((t - 8.05) / 0.3)))
 
     def _make_debris(self):
         """sparse detritus on the slide, fixed in the world: (z, y, x, radius, delta-n, absorption)
@@ -398,7 +404,8 @@ class Walker:
         ph = self.gait_phase(t)
         front = np.clip((s - self.z_neck) / (self.z_head - self.z_neck), 0, 1)
         if local:
-            eps = LENGTH_OSC * np.sin(2 * np.pi * ph) * walking - STOP_SHORTEN * self.stop_env(t)
+            eps = LENGTH_OSC * np.sin(2 * np.pi * ph) * walking - STOP_SHORTEN * self.stop_env(t) \
+                + LENGTH_SLOW * np.sin(2 * np.pi * t / 4.5 + 0.8)
             fr30 = np.exp(-0.5 * ((s - (self.z_head - 0.14 * blen)) / (0.08 * blen)) ** 2)   # behind the tip
             stretch = 1 + eps + HEAD_TELE * np.sin(2 * np.pi * t / 0.8 + 0.4) * _smoothstep(front) \
                 - HEAD_RETRACT * self.stop_env(t) * fr30
@@ -429,11 +436,20 @@ class Walker:
             th = th + np.radians(YAW_DEG) * walking * \
                 np.sin(2 * np.pi * (ph - 0.8 * (self.z_head - s) / blen)) * (1 - ramp)
             tail = _smoothstep((self.z_tail + 0.25 * blen - s) / (0.25 * blen))
-            rear = np.clip((self.z_tail + 0.35 * blen - s) / (0.35 * blen), 0, 1)     # linear: even curvature
+            # bends as smooth steps in the angle = curvature bumps at 75 % (rear) and at legs II-III (mid)
+            rear = _smoothstep(np.clip((self.z_tail + 0.37 * blen - s) / (0.24 * blen), 0, 1))
             th = th - np.radians(REAR_BEND_DEG) * np.sin(2 * np.pi * t / 3.9 + 0.5) * rear
+            z23 = np.mean([L["B"][0] for L in self.legs if L["pair"] in (1, 2)])
+            mid = _smoothstep(np.clip((z23 + 0.1 * blen - s) / (0.2 * blen), 0, 1))
+            th = th + np.radians(MID_BEND_DEG) * walking * np.sin(2 * np.pi * ph + 1.0) * mid
             L4 = next(L for L in self.legs if L["pair"] == 0)
             th = th + np.radians(TAIL_DEG) * walking * np.sin(2 * np.pi * self.leg_phase(L4, t)) * tail
         s_ref = self.z_mid
+        if local:     # curvature limiter: clip |d theta / d arc| and re-integrate from the mid-body
+            ds = np.diff(s) * 0.5 * (stretch[1:] + stretch[:-1])
+            k = np.clip(np.diff(th) / ds, -1 / R_MIN_VOX, 1 / R_MIN_VOX)
+            th_new = np.concatenate([[0.0], np.cumsum(k * ds)])
+            th = th_new - np.interp(s_ref, s, th_new) + np.interp(s_ref, s, th)
         tau_ref = np.interp(sig_h - np.interp(s_ref, s, d), self._sig_inc, self._t)
         p_ref = np.array([np.interp(tau_ref, self._t, self._H[:, 0]), np.interp(tau_ref, self._t, self._H[:, 1])])
         width = np.full_like(s, (1 + eps) ** -0.5)
@@ -475,6 +491,10 @@ class Walker:
             maps = self.trunk(t_td, local=False)
             nom = self.world(L["tip_nom"], maps)
             b0 = self.world(L["B"], maps)
+            if L["pair"] == 3:                         # legs I reach towards the side the head looks to
+                a = 0.5 * float(self.search(t_td))
+                v = nom - b0
+                nom = b0 + np.array([v[0] * np.cos(a) - v[2] * np.sin(a), v[1], v[0] * np.sin(a) + v[2] * np.cos(a)])
             b1 = self.world(L["B"] + np.array([1.0, 0, 0]), maps)
             tang = b1 - b0; tang[1] = 0; tang /= np.linalg.norm(tang)
             var = 1 + STEP_VAR * np.sin(12.9898 * k + 78.233 * L["seed"])
