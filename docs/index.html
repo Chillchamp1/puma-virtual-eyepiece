@@ -220,12 +220,8 @@ figcaption { font-size: 13px; color: var(--muted); }
   <section>
     <h2>The animal walking</h2>
     <figure>
-      <img src="img/anim/walk.gif" alt="Simulated view of the tardigrade walking, seen through the PUMA optics" style="max-width:720px;background:#000" loading="lazy">
-      <figcaption>One stride cycle, 12 frames, focal plane 36 µm below the dorsal surface, through the same ray-traced PUMA optics. The 3D refractive-index volume is deformed per frame: the four leg pairs step in a back-to-front wave and the head sways. This motion model is plausible, not motion-captured. Rendered with 5 wavelengths and 19 condenser points instead of 9 × 61, so colours are slightly coarser than in the still images.</figcaption>
-    </figure>
-    <figure style="margin-top:22px">
-      <img src="img/anim/walk_rig_preview.gif" alt="Work-in-progress preview of the new articulated walking model" style="max-width:480px;background:#000" loading="lazy">
-      <figcaption><span class="tag sub">work in progress</span> New motion model, first preview (3.2 s, 12 fps). Instead of pushing blobs of tissue around, an articulated rig bends the trunk along a midline that follows the head's path, bends each lobopod leg from base to tip, and keeps every claw fixed on the slide while it is in stance (inverse kinematics). Gait from Nirody et al. 2021 and Anderson et al. 2024. This preview uses only one wavelength and 7 condenser points, so it shows a coarse interference pattern; the motion is being refined against real footage.</figcaption>
+      <img src="img/anim/walk.webp" alt="Simulated view of the tardigrade walking, stopping to probe and turning, seen through the microscope" style="max-width:720px;background:#000" loading="lazy">
+      <figcaption><span class="tag sub">work in progress</span> 10.5 s of walking, a 2 s stop to probe and a head-led turn, focal plane 36 µm below the dorsal surface, through the ray-traced PUMA optics (5 wavelengths, 37 condenser points), 8 frames per second. An articulated rig deforms the 3D refractive-index volume: the trunk bends along a midline that follows the head's path (follow-the-leader), each lobopod leg bends and telescopes from base to tip, and every claw stays fixed on the slide while it is in stance (inverse kinematics). Gait from Nirody et al. 2021 and Anderson et al. 2024 (back-to-front stepping wave, duty factor ~0.7, legs IV mostly holding on). The specks are detritus lying on the slide. The motion is still being refined against measurements from real footage.</figcaption>
     </figure>
   </section>
 
