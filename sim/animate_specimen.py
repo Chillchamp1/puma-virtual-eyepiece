@@ -57,29 +57,33 @@ def _to_np(a):
 
 # --------------------------------------------------------------------------- motion parameters
 BODY_LEN_UM = 152.0
-V_WALK = 0.25                       # body lengths / s, first walking bout (Anderson 2024: 0.23 +- 0.08)
-V_WALK2 = 0.28                      # second bout after the stop (cadence within ~15 % of the first)
+V_WALK = 0.20                       # body lengths / s, first walking bout (Anderson 2024: 0.23 +- 0.08)
+V_WALK2 = 0.22                      # second bout after the stop (cadence within ~15 % of the first)
 STEP_UM = 40.0                      # stride length legs I-III, ~0.26 body lengths; period = STEP / speed
 STEP_VAR = 0.15                     # stride-to-stride variation of the step length
 PHASE_JITTER = 0.07                 # per-leg phase irregularity (cycles)
 SWING = 0.28                        # swing fraction legs I-III (duty factor 0.72)
-SWING_IV = 0.15                     # legs IV: mostly holding on (duty factor ~0.85)
-STROKE_IV = 0.5                     # legs IV stroke relative to legs I-III
+SWING_IV = 0.25                     # legs IV: own, visible swings (duty factor ~0.75)
+STROKE_IV = 0.6                     # legs IV stroke relative to legs I-III
 LIFT_UM = 5.0                       # claw lift during swing
 REACH_OUT_UM = 5.0                  # claw path bows outward during swing
-LEG_EXT = 1.3                       # living legs are longer than in the dried specimen (telescoped out)
+LEG_EXT = 1.2                       # living legs are longer than in the dried specimen (telescoped out)
 HEAD_FRAC = 0.34                    # head motions are spread over the front third of the body
-LENGTH_OSC = 0.05                   # global trunk length change at stride frequency
+LENGTH_OSC = 0.08                   # global trunk length change at stride frequency (measured CV <= 12 %)
 STOP_SHORTEN = 0.04                 # the trunk contracts a little while the animal stands
-HEAD_RETRACT = 0.33                 # ... and the head retracts (front 30 % shortens by a third ~ 10 % BL)
+HEAD_RETRACT = 0.5                  # ... and the mouth cone retracts into the head (~15 um, tip stays round)
 HEAD_TELE = 0.07                    # anterior telescoping (head extends / retracts), ~0.8 s period
 BULGE = 0.15                        # segmental widening between leg pairs, phased with their stance
-WANDER_DEG = 18.0                   # slow path wander -> C / S body shapes (wavelength 1.3 body lengths)
-STOP_SCAN_DEG = 32.0                # fast lateral head scan while standing (front 30 %)
+WANDER_DEG = 30.0                   # slow path wander -> C / S body shapes
+WANDER_WL = 2.5                     # wander wavelength in body lengths (>~2 gives C shapes, ~1 S shapes)
+HEAD_SWEEP_FRAC = 0.45              # front fraction of the body over which the head sweep bends
+ARC_DEG_PER_BL = 45.0               # constant path curvature: the animal walks in a gentle arc
+STOP_SCAN_DEG = 30.0                # slow lateral head scan while standing (front 30 %, ~1.6 s)
 SWING_RETRACT = 0.35                # legs shorten (telescope in) during swing
-YAW_DEG = 7.0                       # lateral trunk yaw at stride frequency
+YAW_DEG = 6.0                       # lateral trunk yaw at stride frequency, travelling head -> tail
 TAIL_DEG = 5.0                      # caudal end swings with each leg-IV step
-SEARCH_DEG = 24.0                   # head search sweep amplitude (irregular 1.5-3 s period)
+REAR_BEND_DEG = 20.0                # slow lateral bending of the rear third (real curvature is highest there)
+SEARCH_DEG = 35.0                   # head search sweep amplitude (main period ~3.5 s, irregular, plus jitter)
 LIFT_DEG = -28.0                    # dorsal head lift while the animal stops and probes
 TURN_DEG = 45.0                     # head-led turn after the stop (radius ~1.3 body lengths)
 
@@ -188,7 +192,7 @@ def build_rig(dn, labels, cache=None):
         m2 = lab == k
         # full-resolution lobe and its interface with the trunk
         sl = ndimage.find_objects(m2.astype(np.uint8))[0]
-        pad = 20
+        pad = 36
         box = tuple(slice(max(0, s.start * 2 - pad), min(N, s.stop * 2 + pad)) for s, N in zip(sl, body.shape))
         lobe = np.zeros([b.stop - b.start for b in box], bool)
         up = np.repeat(np.repeat(np.repeat(m2[sl], 2, 0), 2, 1), 2, 2)
@@ -212,9 +216,12 @@ def build_rig(dn, labels, cache=None):
         pair, side = i // 2, (1 if L["gland"][2] > cx0 else -1)
         # skinning weight: 1 in the leg (+ a water margin so its soft surface moves along),
         # fading to 0 over 4 um into the trunk wall
+        # The weight is a region mask, not a blend: 1 in the leg and in the water around it (6 um margin),
+        # falling to 0 within ~1 um into the trunk wall. Bending and telescoping themselves start at zero at
+        # the base (see Walker._bend), so the trunk stays continuous without partially moved, sheared tissue.
         d_out = ndimage.distance_transform_edt(~L["lobe"])
-        w = np.where(L["trunk"], 1 - d_out / 15.0, 1 - (d_out - 4.0) / 4.0)
-        w = ndimage.gaussian_filter(np.clip(w, 0, 1).astype(np.float32), 1.0)
+        w = np.where(L["trunk"], 1 - d_out / 3.0, 1 - (d_out - 22.0) / 10.0)
+        w = ndimage.gaussian_filter(np.clip(w, 0, 1).astype(np.float32), 0.7)
         b = L["box"]
         rig[f"leg{i}_w"] = w
         rig[f"leg{i}_org"] = np.array([s.start for s in b], float)
@@ -249,10 +256,11 @@ class Walker:
         self.step = STEP_UM / VOX
         for L in self.legs:
             a = L["a"]
-            if L["pair"] == 0:                                # legs IV reach backwards (~40 deg)
-                a = a + np.array([-0.6, 0.0, 0.0]); a = a / np.linalg.norm(a)
+            if L["pair"] == 0:                                # legs IV reach back, 20-30 deg off the midline
+                a = a + np.array([-0.9, 0.0, 0.0]); a = a / np.linalg.norm(a)
             tip = L["B"] + LEG_EXT * L["ell"] * a             # nominal claw position (rest frame)
-            tip[2] = L["B"][2] + 0.65 * (tip[2] - L["B"][2])   # legs come out ventrolaterally, partly under the body
+            tip[2] = L["B"][2] + (0.3 if L["pair"] == 0 else 0.45) * (tip[2] - L["B"][2])    # ventrolateral
+            tip[1] += 3.0 / VOX                               # angled down: foreshortened in dorsal view
             L["tip_nom"] = tip
             L["ground_y"] = tip[1]
             if L["pair"] == 0:
@@ -301,8 +309,8 @@ class Walker:
         bl = BODY_LEN_UM / VOX
         # the wander fades out around the turn so that the turn reads as its own event
         quiet = 1 - 0.7 * _smoothstep(np.clip((d - d_turn + 0.5 * bl) / (0.5 * bl), 0, 1))
-        return np.radians(WANDER_DEG * quiet * np.sin(2 * np.pi * d / (1.3 * bl) + 0.7)
-                          + TURN_DEG * _smoothstep(np.clip((d - d_turn) / (1.0 * bl), 0, 1)))
+        return np.radians(ARC_DEG_PER_BL * d / bl + WANDER_DEG * quiet * np.sin(2 * np.pi * d / (WANDER_WL * bl) + 0.7)
+                          + TURN_DEG * _smoothstep(np.clip((d - d_turn) / (1.4 * bl), 0, 1)))
 
     @staticmethod
     def stop_env(t):
@@ -313,10 +321,11 @@ class Walker:
     def search(cls, t):
         """lateral head sweep relative to the path: irregular 1.5-3 s sweep with dwells while walking,
         a fast +-32 deg scan (~1 s) while standing."""
-        g = t - 0.5 * 3.1 / (2 * np.pi) * np.sin(2 * np.pi * t / 3.1)      # period wanders, dwells
-        walk = SEARCH_DEG * np.sin(2 * np.pi * g / 2.3) + 5.0 * np.sin(2 * np.pi * t / 1.3 + 1.0)
+        g = t - 0.5 * 4.3 / (2 * np.pi) * np.sin(2 * np.pi * t / 4.3)      # period wanders, dwells
+        walk = SEARCH_DEG * np.sin(2 * np.pi * g / 3.5) + 3.0 * np.sin(2 * np.pi * t / 0.7 + 1.0) \
+            + 2.0 * np.sin(2 * np.pi * t / 0.53 + 2.0)
         w = cls.stop_env(t)
-        return np.radians((1 - w) * walk + w * STOP_SCAN_DEG * np.sin(2 * np.pi * (t - 2.95) / 0.7))
+        return np.radians((1 - w) * walk + w * STOP_SCAN_DEG * np.sin(2 * np.pi * (t - 2.95) / 1.6))
 
     @classmethod
     def lift(cls, t):
@@ -390,7 +399,7 @@ class Walker:
         front = np.clip((s - self.z_neck) / (self.z_head - self.z_neck), 0, 1)
         if local:
             eps = LENGTH_OSC * np.sin(2 * np.pi * ph) * walking - STOP_SHORTEN * self.stop_env(t)
-            fr30 = _smoothstep(np.clip((s - (self.z_head - 0.3 * blen)) / (0.3 * blen), 0, 1))
+            fr30 = np.exp(-0.5 * ((s - (self.z_head - 0.14 * blen)) / (0.08 * blen)) ** 2)   # behind the tip
             stretch = 1 + eps + HEAD_TELE * np.sin(2 * np.pi * t / 0.8 + 0.4) * _smoothstep(front) \
                 - HEAD_RETRACT * self.stop_env(t) * fr30
         else:
@@ -407,17 +416,21 @@ class Walker:
         th = np.where(sig > sig_h, th_h, th)                       # beyond the head tip: straight on
         if local:
             # head search spread evenly over the front 45 % (linear angle ramp = constant curvature)
-            ramp = np.clip((s - (self.z_head - 0.45 * blen)) / (0.45 * blen), 0, 1)
+            ramp = np.clip((s - (self.z_head - HEAD_SWEEP_FRAC * blen)) / (HEAD_SWEEP_FRAC * blen), 0, 1)
             ramp_scan = np.clip((s - (self.z_head - 0.30 * blen)) / (0.30 * blen), 0, 1)
             w = self.stop_env(t)
             srch = self.search(t)
             # while turning, the head sweep is damped so path + sweep stay within ~50 deg head-to-tail
             turning = abs(np.interp(t, self._t, self._th) - np.interp(t - 1.5, self._t, self._th))
-            srch = srch * (1 - 0.85 * np.clip(2 * turning / np.radians(TURN_DEG), 0, 1))
+            srch = srch * (1 - 0.5 * np.clip(2 * turning / np.radians(TURN_DEG), 0, 1))
+            srch = srch + np.radians(14.0) * np.exp(-0.5 * ((t - 4.8) / 0.35) ** 2)   # "decides" with the head
             th = th + srch * ((1 - w) * ramp + w * ramp_scan)
-            th = th + np.radians(YAW_DEG) * walking * np.sin(2 * np.pi * ph) * \
-                np.cos(2 * np.pi * (s - self.z_mid) / blen) * (1 - ramp)
+            z23 = np.mean([L["B"][0] for L in self.legs if L["pair"] in (1, 2)])
+            th = th + np.radians(YAW_DEG) * walking * \
+                np.sin(2 * np.pi * (ph - 0.8 * (self.z_head - s) / blen)) * (1 - ramp)
             tail = _smoothstep((self.z_tail + 0.25 * blen - s) / (0.25 * blen))
+            rear = np.clip((self.z_tail + 0.35 * blen - s) / (0.35 * blen), 0, 1)     # linear: even curvature
+            th = th - np.radians(REAR_BEND_DEG) * np.sin(2 * np.pi * t / 3.9 + 0.5) * rear
             L4 = next(L for L in self.legs if L["pair"] == 0)
             th = th + np.radians(TAIL_DEG) * walking * np.sin(2 * np.pi * self.leg_phase(L4, t)) * tail
         s_ref = self.z_mid
@@ -430,6 +443,8 @@ class Walker:
                 zc = np.mean([L["B"][0] for L in Ls])
                 st = np.mean([np.cos(2 * np.pi * self.leg_phase(L, t)) for L in Ls])
                 width = width * (1 + BULGE * walking * st * np.exp(-0.5 * ((s - zc) / 45.0) ** 2))
+            width = width * (1 + 0.05 * self.stop_env(t) * _smoothstep(np.clip(
+                (s - (self.z_head - 0.3 * blen)) / (0.15 * blen), 0, 1)))
         lat = CurveMap(s, th, s_ref, p_ref, stretch=stretch, width=width)
         psi = (np.radians(LIFT_DEG) * self.lift(t) if local else 0.0) * _smoothstep(front)
         pit = CurveMap(s, np.zeros_like(s) + psi, 0.0, np.array([0.0, self.cy0]))
@@ -549,14 +564,17 @@ class Walker:
                 dp = np.zeros(3); dp[k] = 1e-3
                 Jp[:, k] = (tip_world(p + dp) - f0) / 1e-3
             p = p + np.linalg.lstsq(Jp, target - f0, rcond=None)[0]
-            p[2] = np.clip(p[2], 0.75, 1.7)
+            p[2] = np.clip(p[2], 0.8, 1.5)
+            ang = np.hypot(p[0], p[1])
+            if ang > np.radians(60):
+                p[:2] *= np.radians(60) / ang
         return p[0] * e1 + p[1] * e2, p[2], swinging
 
     # ---- warp
     def _bend(self, L, al):
         """fraction of the bend applied at axial position al: 0 at the base, 1 over the distal fifth
         (claw region stays rigid)."""
-        return _smoothstep(al / (0.8 * L["ell"]))
+        return _smoothstep((al / L["ell"] - 0.3) / 0.7)
 
     @staticmethod
     def _rotate(v, om, frac):
